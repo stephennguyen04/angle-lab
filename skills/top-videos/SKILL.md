@@ -26,7 +26,9 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/video_prep.sh" "<video_url hoặc file>" res
 
 - **Xem thật** các khung hook (Read từng ảnh) và keyframe cảnh. Đừng phân tích chỉ từ transcript.
 - Nếu có skill `video-watcher` thì dùng nó để phân tích sâu hơn; có MCP Higgsfield `video_analysis_create` cũng dùng được.
-- Không có transcript thì đọc chữ trên màn hình từ khung hình + ad copy, và ghi rõ "không có audio transcript".
+- **Lời thoại:** `video_prep.sh` tự chạy `/angle-lab:transcribe` nếu có faster-whisper (đặt `ASR_LANG=vi` với video tiếng Việt). Kết quả `transcript.json`: `hook_0_3s`, `first_word_at`, `words_per_sec`, từ cần nghe lại.
+- **Chữ trên màn hình (có dấu):** `video_prep.sh` tự chạy `/angle-lab:ocr` nếu có tesseract-vie/easyocr. Kết quả `ocr.json`: `hook_text`, `first_text_at`, timeline từng dòng chữ. Dòng chữ nhỏ thì Read lại khung hình để kiểm tra dấu.
+- Thiếu cả hai công cụ thì tự đọc chữ từ khung hình + ad copy, và ghi rõ "không có transcript / OCR".
 - Link snapshot Ad Library không tải được thì nhờ người dùng tải mp4 (nút download trên Ad Library) hoặc gửi link TikTok/IG gốc.
 
 ## 2. Phân tích mỗi video → `03-videos/vN/analysis.md`
@@ -63,3 +65,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/video_prep.sh" "<video_url hoặc file>" res
 - **Pattern hook** lặp lại (ví dụ 3/5 mở bằng "kết quả trước").
 - **Khoảng trống**: nỗi đau nào khách nhắc nhiều trong bình luận nhưng đối thủ chưa khai thác (đối chiếu `04-comments` nếu có). Đây là angle tiềm năng riêng của mình.
 - Kết: **5 angle đề xuất đưa vào test** (mặc định 1 angle / 1 video top; thay video trùng angle bằng angle "khoảng trống").
+
+## 4. Lưu hook vào thư viện
+
+Ghi mỗi video 1 dòng vào `research/<slug>/03-videos/hooks.jsonl` (`text` = chữ + lời 0–3s nguyên văn có dấu, `type`, `angle`, `pain`, `platform`, `visual`, `ad_id`, `days_running`, `duplicates`, `eu_reach`, `views`), rồi chạy `hooks_library.py harvest --root research --niche "<ngách>"` (xem `/angle-lab:hooks`).

@@ -30,6 +30,7 @@ Ghi `04-comments/platforms.md`: bảng nền tảng · link · có bán không �
 | **Instagram** | `ig_collect.py profile <brand> --reels-only --comments 300 --login <user>` (instaloader, cần session) hoặc `ig_collect.py import <export Apify>.json` → `ig/comments/*.json` đọc thẳng bằng `comments.py prep -i instagram:<file>`. Lấy thêm `tagged <brand>` (UGC/affiliate tag brand) và `urls <link>` cho bài hợp tác creator |
 | Facebook post & ad | Thường cần đăng nhập nên **nhờ người dùng export** (ExportComments, Apify, extension) ra CSV/JSON, hoặc copy-paste vào .txt. Với ad đang chạy: mở post của ad từ Ad Library → xem bình luận. CSV từ Excel (dấu `;`, cột tiếng Việt như "Nội dung") đọc được trực tiếp |
 | Amazon / Trustpilot / Shopee / Etsy | WebFetch từng trang review (ưu tiên lọc 1–3 sao VÀ 5 sao), lưu thành CSV `text,rating,likes,date` |
+| **Apify (khuyên dùng cho Facebook + Instagram)** | `APIFY_TOKEN=… apify_fetch.py fb-comments <URL bài/ad FB> … --limit 500 --out-dir 04-comments/raw/apify_fb` và `apify_fetch.py ig-comments <URL reel> …`. Lấy cả trả lời lồng; ra `comments/*.json` đọc thẳng bằng `comments.py prep -i facebook:<file>`. Run đã chạy trên Apify Console: `apify_fetch.py dataset <runId> --kind fb-comments`. Xem `/angle-lab:apify` |
 | Reddit | Thêm `.json` vào cuối URL thread rồi WebFetch → lấy `body` + `score` |
 | Review trên chính PDP (Judge.me/Loox…) | Từ text đã capture ở `02-funnel/*.txt`, nhưng **cảnh giác review do shop tự đăng**, nên đánh dấu `platform=pdp` để tách riêng |
 

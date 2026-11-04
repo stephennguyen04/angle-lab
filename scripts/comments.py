@@ -34,12 +34,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from csvio import norm_key, parse_count, read_csv_rows  # noqa: E402
 
 TEXT_KEYS = ["text", "comment", "content", "body", "review", "message", "comment_text", "review_text", "noi_dung", "binh_luan"]
-LIKE_KEYS = ["like_count", "likes", "digg_count", "reactions", "helpful", "helpful_votes", "upvotes", "score", "luot_thich"]
-DATE_KEYS = ["timestamp", "date", "created_at", "create_time", "time", "published_at", "ngay"]
-URL_KEYS = ["source_url", "post_url", "url", "video_url", "link"]
+LIKE_KEYS = ["like_count", "likescount", "reactionscount", "likecount", "likes", "digg_count", "reactions", "helpful", "helpful_votes", "upvotes", "score", "luot_thich"]
+DATE_KEYS = ["timestamp", "date", "created_at", "createdat", "create_time", "time", "published_at", "ngay"]
+URL_KEYS = ["source_url", "post_url", "posturl", "facebookurl", "inputurl", "url", "video_url", "link"]
 PLATFORM_KEYS = ["platform", "source", "nen_tang"]
 RATING_KEYS = ["rating", "stars", "star", "so_sao"]
-AUTHOR_KEYS = ["author", "author_id", "user", "username", "name", "nickname"]
+AUTHOR_KEYS = ["author", "author_id", "profilename", "ownerusername", "user", "username", "name", "nickname"]
 
 TYPES = ["praise", "complaint", "question", "purchase_intent", "skeptic", "tag_friend", "other"]
 TYPE_VI = {"praise": "Khen", "complaint": "Chê", "question": "Hỏi", "purchase_intent": "Muốn mua",

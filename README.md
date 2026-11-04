@@ -22,6 +22,13 @@ Plugin cho **Claude Code**: với mỗi sản phẩm, AI phân tích đối th�
 | `/angle-lab:top-videos` | Mổ 5 video top: angle, nỗi đau bề mặt → sâu, persona, **hook 0–3s theo từng khung hình**, beat, proof, format |
 | `/angle-lab:comments` | Họ bán trên nền tảng nào, **đọc và gắn nhãn từng bình luận**: chê gì, khen gì, hỏi gì → rủi ro 🔴🟡🟢, FAQ, đạn creative, điểm làm tốt hơn |
 | `/angle-lab:scoreboard` | Tìm angle / ad / reel **mạnh nhất trên Meta Ads + Instagram** chỉ bằng dữ liệu công khai: ad sống lâu, bản nhân, tiếp cận EU, % ad IG, hợp tác creator, view/follower, % bình luận muốn mua/chê → Top 10 ad, Top 10 bài IG, chốt A1–A5 |
+| `/angle-lab:audience` | Persona đối thủ **thực sự tiếp cận** (giới, tuổi, quốc gia theo angle) từ dữ liệu minh bạch EU/UK của Ad Library API, dùng để chọn nhân vật |
+| `/angle-lab:ocr` | Đọc **chữ trên màn hình** video/ảnh (text overlay hook, caption, sticker giá), **tiếng Việt có dấu**, có timeline |
+| `/angle-lab:transcribe` | **Nghe lời thoại → chữ** (tiếng Việt có dấu), timestamp từng từ, câu hook 3s đầu, tốc độ nói, phụ đề .srt |
+| `/angle-lab:apify` | Lấy **bình luận Facebook/Instagram** (kèm trả lời), bài IG, ad Meta qua Apify, chuyển thẳng sang định dạng phân tích |
+| `/angle-lab:hooks` | **Thư viện hook dùng chung** mọi sản phẩm: hook đối thủ sống lâu + hook mình test thắng, tìm không cần dấu |
+| `/angle-lab:monitor` | **Theo dõi đối thủ hằng ngày**: ad mới, ad vượt 30/60 ngày, tăng bản nhân, đổi giá/bundle |
+| `/angle-lab:discover` | **Tự tìm đối thủ** từ từ khoá ngách, xếp hạng page đáng spy, loại sàn TMĐT |
 | `/angle-lab:angle-test` | Brief dựng lại 5 video top thành 5 video test (1 video = 1 angle), cấu trúc camp, ngân sách theo CPA hoà vốn, naming, rule kill |
 | `/angle-lab:winner <export.csv>` | Đọc số → video nào ra sale → mổ video đó → **ANGLE KIM CHỈ NAM** (bất biến vs biến được đổi) + `angle.json` |
 | `/angle-lab:clone` | Nhân bản bằng AI theo vòng (hook → nhân vật → bối cảnh), có **kiểm tra angle lock**: lạc angle là loại |
@@ -49,7 +56,10 @@ claude --plugin-dir /đường/dẫn/angle-lab
 | Node + `playwright` | nên có | capture funnel mobile, scraper Ad Library dự phòng (`npm i -g playwright && npx playwright install chromium`) |
 | `yt-dlp` | nên có | tải video & **bình luận** TikTok/YouTube, tải reel IG (`pipx install yt-dlp`) |
 | `instaloader` | nên có | lấy Reels/bài IG, bài được tag, hashtag, bình luận (`pip install instaloader`, rồi `instaloader -l <user>` để có session). Không có thì import export Apify |
-| `faster-whisper` | tuỳ chọn | transcript lời thoại video (`pip install faster-whisper`) |
+| `faster-whisper` | nên có | nghe lời thoại → chữ, tiếng Việt có dấu (`pip install faster-whisper`; model `medium` ~1,5 GB tải lần đầu) |
+| `tesseract` + `vie` | nên có | đọc chữ trên màn hình có dấu (`brew install tesseract tesseract-lang` · `apt install tesseract-ocr tesseract-ocr-vie`); hoặc `pip install easyocr` |
+| Apify (`APIFY_TOKEN`) | tuỳ chọn | bình luận FB/IG, bài IG, ad Meta qua actor Apify |
+| Meta Ad Library API (`META_ADLIB_TOKEN`) | tuỳ chọn | lượt tiếp cận EU + cơ cấu tuổi/giới/quốc gia (cần xác minh danh tính tại facebook.com/ID) |
 | MCP **Meta Ads** | tuỳ chọn (khuyên dùng) | `ads_library_search`: lấy ad đối thủ không cần scrape |
 | MCP **Higgsfield** | tuỳ chọn | sinh video AI khi nhân bản (đổi nhân vật/bối cảnh) |
 
@@ -79,6 +89,14 @@ node    scripts/adlib_scrape.cjs "<Ad Library URL>" scrape.json --platform insta
 python3 scripts/ad_cadence.py -i ads.json --brand-domain brand.com          # scale, nhịp ra ad, hạng Long-Runner, % IG, EU reach
 python3 scripts/ig_collect.py profile <brand> --reels-only --comments 200 --login <user>        # Reels + bình luận IG
 python3 scripts/ig_collect.py import apify_instagram.json                    # hoặc từ export Apify
+APIFY_TOKEN=… python3 scripts/apify_fetch.py fb-comments <URL bài/ad> --limit 500 --out-dir c/raw   # bình luận FB qua Apify
+META_ADLIB_TOKEN=… python3 scripts/adlib_api.py --page-ids 123 --countries DE,FR -o api.json   # API chính thức (DSA)
+python3 scripts/audience.py --ads ads_raw.json --angle-map angle_map.csv     # persona theo angle
+python3 scripts/ocr_frames.py --video ad.mp4 --out-dir v1/                   # chữ trên màn hình (tiếng Việt có dấu)
+python3 scripts/transcribe.py ad.mp4 --out-dir v1/ --lang vi                 # lời thoại → chữ
+python3 scripts/hooks_library.py harvest --root research                     # thư viện hook
+python3 scripts/monitor.py diff --dir research/x/monitor                     # theo dõi thay đổi
+python3 scripts/discover.py -i kw1.json -i kw2.json                          # tìm đối thủ
 node    scripts/capture_page.cjs "<landing>" out/ --follow-cta               # funnel mobile
 python3 scripts/shopify_product.py "<PDP url>"                               # variants / bundle
 bash    scripts/video_prep.sh "<video|url>" out/                             # khung hook + cảnh + transcript

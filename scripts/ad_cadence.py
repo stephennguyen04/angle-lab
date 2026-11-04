@@ -50,6 +50,7 @@ FIELD_ALIASES = {
     "video_url": ["video_url", "video", "video_hd_url", "video_sd_url", "media_url"],
     "body": ["body", "text", "ad_creative_body", "primary_text", "caption", "noi_dung"],
     "page_name": ["page_name", "page", "advertiser"],
+    "page_id": ["page_id", "pageid", "advertiser_id", "view_all_page_id"],
     "platforms": ["platforms", "publisher_platforms", "placements", "nen_tang"],
     "eu_reach": ["eu_reach", "eu_total_reach", "reach", "luot_tiep_can", "tiep_can_eu"],
     "partnership": ["partnership", "paid_partnership", "branded_content", "is_partnership", "creator"],

@@ -68,6 +68,15 @@ Theo template `${CLAUDE_PLUGIN_ROOT}/templates/north-star.md`. Cốt lõi:
   "settings": [{"id": "S0", "desc": "(bối cảnh video thắng)"}, {"id": "S1", "desc": "…"}]
 }
 ```
-Soạn sẵn **10 hook mới** (đủ kiểu hook, đều bám nỗi đau/lời hứa của angle, ưu tiên ngôn ngữ khách thật từ bình luận), **5 nhân vật**, **5 bối cảnh** đều hợp persona. H0/C0/S0 = đúng của video thắng (control).
+Soạn sẵn **10 hook mới** (đủ kiểu hook, đều bám nỗi đau/lời hứa của angle, ưu tiên ngôn ngữ khách thật từ bình luận, và **khung hook đã chứng minh** từ `hooks_library.py search --q "<nỗi đau>" --status proven`), **5 nhân vật**, **5 bối cảnh** đều hợp persona. H0/C0/S0 = đúng của video thắng (control).
+- Nhân vật: nếu có `01-scale/audience.md` (`/angle-lab:audience`), C0 theo persona thực tế lớn nhất của angle; C1–C2 theo nhóm lớn thứ hai, thứ ba. Không có thì theo nhân vật trong ad đối thủ sống lâu nhất và người hỏi mua trong bình luận.
+- Lời thoại / chữ của video thắng: lấy từ `winner_video/transcript.json` và `winner_video/ocr.json` để viết lại beat chính xác theo timestamp.
+
+Gắn kết quả thật vào thư viện hook (`/angle-lab:hooks`):
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/hooks_library.py" results --readout research/<slug>/creative/readout.json \
+  --variants research/<slug>/creative/04-variants.csv --product <slug> --niche "<ngách>" --angle "<angle>"
+```
+(Vòng test angle chưa có `04-variants.csv` thì thêm hook thắng bằng `hooks_library.py add … --source own`.)
 
 Ghi vào `creative/log.md`. Bước tiếp: `/angle-lab:clone research/<slug>`.

@@ -28,7 +28,8 @@ Lấy đúng mã **A1…A5** từ `scoreboard.json` (trường `test_code`), dù
 
 Mỗi brief gồm:
 - Angle 1 câu + video gốc tham chiếu (link, thời lượng)
-- **Script viết lại bằng lời của mình**, chia beat có timestamp, bám đúng thứ tự beat của video gốc; chèn ngôn ngữ khách thật từ `insights.md`
+- **Script viết lại bằng lời của mình**, chia beat có timestamp (lấy từ `transcript.json` + `ocr.json` của video gốc), bám đúng thứ tự beat; chèn ngôn ngữ khách thật từ `insights.md`
+- Nhân vật hợp persona của angle (`01-scale/audience.md` nếu có)
 - Hook 0–3s: hình + chữ + câu nói (giữ **kiểu hook** của bản gốc)
 - Shot list (cảnh, góc máy, thời lượng, nguồn footage)
 - Chữ trên màn hình, caption, nhạc, độ dài (giữ ±20% bản gốc)

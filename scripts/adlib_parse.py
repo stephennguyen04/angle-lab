@@ -182,6 +182,12 @@ def normalize(a: dict) -> dict:
         "eu_reach": int(reach) if isinstance(reach, (int, float)) or (isinstance(reach, str) and reach.isdigit()) else None,
         "partnership": partner,
         "snapshot_url": a.get("ad_snapshot_url"),
+        # Dữ liệu minh bạch EU/UK (DSA): cơ cấu tiếp cận + target khai báo
+        "reach_breakdown": a.get("age_country_gender_reach_breakdown") or deep_get(a, "age_country_gender_reach_breakdown"),
+        "target_ages": a.get("target_ages") or deep_get(a, "target_ages"),
+        "target_gender": a.get("target_gender") or deep_get(a, "target_gender"),
+        "target_locations": a.get("target_locations") or deep_get(a, "target_locations"),
+        "payer": (a.get("beneficiary_payers") or [{}])[0].get("payer") if isinstance(a.get("beneficiary_payers"), list) and a.get("beneficiary_payers") else None,
     }
 
 

@@ -13,6 +13,8 @@ Mục tiêu cuối: trả lời **"Có nên làm sản phẩm này không, và n
 Script của plugin nằm ở `${CLAUDE_PLUGIN_ROOT}/scripts/` (mọi skill con đều gọi theo đường dẫn này). Nếu đường dẫn không tồn tại (chạy ngoài plugin), tìm bằng
 `find ~/.claude -path '*angle-lab*/scripts/ad_cadence.py' 2>/dev/null | head -1` rồi dùng thư mục đó thay thế. Mỗi lệnh Bash là shell mới, nên luôn ghi đường dẫn đầy đủ.
 
+Chưa có link đối thủ, chỉ có ngách/sản phẩm? Chạy `/angle-lab:discover` trước để tìm và chọn page đáng spy.
+
 ## 1. Lập hồ sơ & workspace
 
 Từ input `$ARGUMENTS`, xác định (hỏi người dùng nếu thiếu thứ không tự tìm được):
@@ -63,5 +65,10 @@ Nếu môi trường không có Agent tool, hãy làm tuần tự theo từng sk
 Mọi con số phải dẫn nguồn (file trong workspace). Phần nào thiếu dữ liệu thì ghi rõ "chưa có dữ liệu + cách lấy", không bịa.
 
 ## 4. Kết thúc
+
+Trước khi kết thúc:
+- Đối thủ có bán ở EU/UK → chạy `/angle-lab:audience` để có persona thực tế cho từng angle (đưa vào REPORT mục 7).
+- Gom hook đã mổ vào thư viện: `hooks_library.py harvest --root research --niche "<ngách>"`.
+- Gợi ý người dùng bật `/angle-lab:monitor` để theo dõi đối thủ này hằng ngày.
 
 Trả lời người dùng: verdict, 5 phát hiện đáng giá nhất, đường dẫn REPORT.md, và bước tiếp theo: `/angle-lab:angle-test research/<slug>`.
