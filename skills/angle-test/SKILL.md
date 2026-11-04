@@ -8,15 +8,16 @@ argument-hint: "<research/<slug>> [giá bán] [giá vốn] [phí ship]"
 
 **Nguyên tắc:** giai đoạn này chỉ nhằm **xác định angle nào ăn tiền**, chưa cần creative đẹp và chưa tối ưu hook. Vì vậy mỗi video test phải khác nhau **ở angle**, còn lại giữ giống nhau nhiều nhất có thể.
 
-Input: `research/<slug>/01-scale/scoreboard.json` + `scoreboard.md` (A1–A5 đã chốt, kèm CPC kỳ vọng / ROAS mục tiêu), `03-videos/videos.md` + `04-comments/insights.md` + `02-funnel/funnel.md`. Thiếu thì chạy `/angle-lab:spy` trước. Output: `research/<slug>/creative/01-test-plan.md` + `creative/briefs/A1..A5.md`.
+Input: `research/<slug>/01-scale/scoreboard.json` + `scoreboard.md` (A1–A5 đã chốt từ dữ liệu mạng xã hội), `03-videos/videos.md` + `04-comments/insights.md` + `02-funnel/funnel.md`. Thiếu thì chạy `/angle-lab:spy` trước. Output: `research/<slug>/creative/01-test-plan.md` + `creative/briefs/A1..A5.md`.
 
 ## 1. Chốt 5 angle
 
 Lấy đúng mã **A1…A5** từ `scoreboard.json` (trường `test_code`), dùng xuyên suốt (tên ad, file, báo cáo). Chưa có scoreboard thì chạy `/angle-lab:scoreboard` trước.
-| Mã | Angle (1 câu) | Nỗi đau | Persona | Proof | CPC kỳ vọng | ROAS mục tiêu | Video tham chiếu |
-- Mỗi angle chọn **video đối thủ sống lâu nhất của chính angle đó** làm bản gốc để dựng lại.
+| Mã | Angle (1 câu) | Nỗi đau | Persona | Điểm MXH | Tín hiệu mạnh nhất | Video tham chiếu |
+- Mỗi angle chọn **bài có share cao nhất** (hoặc ad sống lâu nhất) của chính angle đó làm bản gốc để dựng lại.
 - Nếu đổi 1 slot sang angle "khoảng trống" từ bình luận: sửa `test_code` trong `scoreboard.json` cho khớp, để bước đọc số so sánh đúng.
-- KPI kỳ vọng chỉ để **đối chiếu sau test**, không dùng để kill sớm. Rule kill vẫn theo CPA hoà vốn ở mục 3.
+- Angle bị chê nhiều trong bình luận: chèn đoạn xử lý objection đó vào script.
+- Điểm MXH chỉ để chọn angle và đối chiếu sau test. Rule kill vẫn theo CPA hoà vốn ở mục 3.
 
 ## 2. Brief edit cho từng angle → `creative/briefs/A<n>.md`
 

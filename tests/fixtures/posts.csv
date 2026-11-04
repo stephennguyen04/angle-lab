@@ -1,7 +1,10 @@
-angle,platform,url,views,likes,comments,shares
-dau-lung-van-phong,tiktok,u1,820000,41000,1900,5200
-dau-lung-van-phong,instagram,u2,210000,9000,400,800
-tu-the-xau,tiktok,u3,300000,6000,200,300
-so-sanh,tiktok,u4,150000,6500,700,900
-chuyen-gia,youtube,u5,90000,2700,150,200
-qua-tang,tiktok,u6,60000,900,40,30
+angle,angle_name,platform,url,creator,views,likes,comments,shares,saves,followers
+dau-lung-van-phong,Đau lưng văn phòng,tiktok,https://www.tiktok.com/@brand/video/1,brand,820000,41000,1900,5200,3100,120000
+dau-lung-van-phong,Đau lưng văn phòng,tiktok,https://www.tiktok.com/@aff1/video/2,aff1,410000,18000,900,2600,1500,30000
+dau-lung-van-phong,Đau lưng văn phòng,instagram,https://instagram.com/p/x,aff2,210000,9000,400,800,600,50000
+tu-the-xau,Tư thế xấu khi chụp ảnh,tiktok,https://www.tiktok.com/@brand/video/3,brand,300000,6000,200,300,150,120000
+so-sanh,So sánh với nẹp cứng,tiktok,https://www.tiktok.com/@aff3/video/4,aff3,150000,6500,700,900,400,20000
+so-sanh,So sánh với nẹp cứng,youtube,https://youtube.com/shorts/y,aff4,90000,3000,300,200,0,15000
+chuyen-gia,Chuyên gia vật lý trị liệu khuyên,youtube,https://youtube.com/watch?v=z,brand,90000,2700,150,200,0,40000
+qua-tang,Quà tặng cho bố mẹ,tiktok,https://www.tiktok.com/@brand/video/6,brand,60000,900,40,30,20,120000
+tre-em,Trẻ em cong lưng khi học,facebook,https://facebook.com/reel/7,brand,45000,700,60,90,0,80000

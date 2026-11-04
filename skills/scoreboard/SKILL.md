@@ -1,53 +1,67 @@
 ---
 name: scoreboard
-description: Chấm điểm từng ANGLE của đối thủ với CPC ước tính, ROAS sàn suy ra và proof score (độ bền ad, số ad + bản nhân, ad mới 30 ngày, tương tác), rồi chọn A1–A5 kèm KPI kỳ vọng để đưa sang bước test angle. Dùng khi hỏi "CPC ROAS của mỗi angle", "angle nào của đối thủ ra tiền nhất", "xếp hạng angle", "chọn angle để test", hoặc là bước cuối của /angle-lab:spy.
-argument-hint: "<research/<slug>> [AOV] [giá vốn] [ship] [CPC chuẩn]"
+description: Chấm điểm từng ANGLE của đối thủ chỉ bằng dữ liệu công khai trên mạng xã hội (view, like, comment, share, save trên TikTok/Instagram/Facebook/YouTube, số creator cùng đánh angle, % bình luận muốn mua hoặc chê, cộng tín hiệu công khai từ Ad Library), rồi chọn A1–A5 để đưa sang bước test angle. Dùng khi hỏi "angle nào của đối thủ mạnh nhất", "xếp hạng angle", "chọn angle để test", "angle nào viral", hoặc là bước cuối của /angle-lab:spy.
+argument-hint: "<research/<slug>>"
 ---
 
-# /angle-lab:scoreboard: CPC / ROAS theo từng angle → chọn A1–A5
+# /angle-lab:scoreboard: Xếp hạng angle bằng dữ liệu mạng xã hội → A1–A5
 
-## Nói thẳng về dữ liệu
+Chỉ dùng **số nhìn thấy công khai**. Không ước tính CPC, ROAS hay chi tiêu của đối thủ, vì những số đó không công khai và đoán ra chỉ gây hiểu sai. Số CPC/ROAS duy nhất trong quy trình là số **thật** từ ad của chính bạn, ở bước test.
 
-**CPC, ROAS, chi tiêu thật của đối thủ không công khai.** Ad Library chỉ có ngày chạy, trạng thái, số bản nhân và nội dung. Vì vậy bảng điểm này **không bao giờ** được trình bày con số ước tính như số thật. Mỗi con số đều kèm nguồn và độ tin cậy:
+## Tín hiệu được dùng
 
-| Chỉ số | Cách có | Ý nghĩa |
-|---|---|---|
-| **ROAS sàn suy ra** | Angle có ad active ≥30 ngày ⇒ ROAS ≥ ROAS hoà vốn (AOV ÷ (AOV − giá vốn − ship − phí)) | Không ai đốt tiền 1 tháng cho ad lỗ. Đây là **cận dưới**, không phải ROAS thật |
-| **CPC ước tính** | CPC chuẩn ÷ chỉ số tương tác của angle (kẹp 0.6–1.6), khoảng ±25% | Angle được tương tác nhiều thường có CTR cao hơn nên CPC thấp hơn |
-| **Số từ tool spy** | Export của PiPiAds / Minea / BigSpy… (`est_spend, est_cpc, est_roas`) | Vẫn là ước tính của tool, ghi rõ nguồn |
-| **Proof score 0–100** | Độ bền ad 35% · ad active + bản nhân 25% · ad mới 30 ngày 15% · tương tác 15% · chi tiêu ước tính 10% | Thị trường đã xác nhận angle này tới mức nào |
+| Tín hiệu | Lấy ở đâu | Vì sao có giá trị | Trọng số |
+|---|---|---|---|
+| **Tỉ lệ share** (share/view) | TikTok, IG, FB, YouTube | Người xem gửi cho người khác = angle chạm đúng nỗi đau | 20% |
+| **Tỉ lệ tương tác** (like+comment+share+save)/view | như trên | Mức độ angle giữ được người xem | 15% |
+| **View trung vị / bài** | như trên | Độ phủ, tránh để 1 bài viral kéo cả angle | 15% |
+| **% bình luận muốn mua / hỏi giá, link** | `/angle-lab:comments`, nối theo URL bài | Tín hiệu mua gần nhất có thể quan sát | 15% |
+| **Số creator khác nhau cùng đánh angle** | tên tài khoản đăng bài | Affiliate/UGC tự copy angle = angle bán được | 10% |
+| **Ad chạy lâu nhất** | Ad Library (công khai) | Đối thủ giữ ad lâu = ad ổn | 15% |
+| **Ad active + ad mới 30 ngày** | Ad Library | Đối thủ đang đổ thêm vào angle này | 10% |
+| **% bình luận chê / nghi ngờ** | `/angle-lab:comments` | **Trừ điểm**: tối đa −50% nếu toàn chê | phạt |
 
-**CPC chuẩn** lấy theo thứ tự ưu tiên: (1) CPC thật trong tài khoản của bạn cho sản phẩm/ngách tương tự (MCP Meta Ads: `ads_get_ad_entities` với metric cpc), (2) benchmark ngành (MCP Meta Ads: `ads_insights_industry_benchmark`), (3) người dùng cung cấp. Không có thì để trống cột CPC, **không đoán**.
+Thiếu nguồn nào thì script tự bỏ tín hiệu đó và chia lại trọng số. Cột "Tin cậy" thể hiện dữ liệu dày hay mỏng.
 
-## 1. Gắn mỗi ad đối thủ vào 1 angle → `01-scale/angle_map.csv`
+## 1. Gom bài đăng theo angle → `01-scale/posts.csv`
 
-Khác bước top-videos (chỉ mổ 5 video), ở đây phải gán **toàn bộ** ad trong `01-scale/ads_raw.json`:
-- Dùng danh sách angle đã rút ra ở `03-videos/videos.md` làm bộ nhãn; ad không khớp angle nào thì tạo angle mới (slug ngắn, không dấu).
-- Căn cứ: ad copy (body), headline, thumbnail/video nếu có, landing page. Ad cùng creative (bản nhân) thì cùng angle.
-- Định dạng: `ad_id,angle,angle_name` (ví dụ `1234,dau-lung-van-phong,Đau lưng văn phòng`).
-- Không chắc thì gán `unclear`, đừng ép.
+Với mỗi angle đã rút ra ở `03-videos/videos.md`, tìm **mọi bài** dùng angle đó, không chỉ của brand:
+- Tài khoản chính của brand trên TikTok / IG / FB / YouTube
+- Video affiliate, TikTok Shop, KOC/UGC đăng cùng sản phẩm (tìm theo tên sản phẩm, hashtag, nhạc/âm thanh của video gốc)
+- Spark ads / bài organic trùng creative với ad trong Ad Library
 
-## 2. Gom tương tác (tuỳ chọn nhưng nên có) → `01-scale/posts.csv`
+Lấy số:
+```bash
+yt-dlp --skip-download --write-info-json -o "research/<slug>/01-scale/posts/%(extractor)s_%(id)s" <url>
+```
+File `.info.json` có `view_count, like_count, comment_count, repost_count, uploader, channel_follower_count`. Instagram/Facebook thường cần đăng nhập: đọc số hiển thị trên bài (hoặc nhờ người dùng chụp màn hình/export) rồi nhập tay.
 
-Cùng creative thường được đăng organic hoặc Spark trên TikTok/IG/YouTube. Lấy `view_count, like_count, comment_count, repost_count` từ file `.info.json` mà bước comments đã tải bằng yt-dlp, rồi ghi CSV `angle,platform,url,views,likes,comments,shares`. Có thể truyền thẳng `--posts <slug>:<file>.info.json`.
+Ghi CSV: `angle,angle_name,platform,url,creator,views,likes,comments,shares,saves,followers`.
+- Mỗi bài gán **1 angle**, dựa trên nội dung video (xem hook + nỗi đau), không dựa vào caption.
+- Ghi `url` đầy đủ để nối với bình luận đã tải ở bước comments.
+
+## 2. (Tuỳ chọn) Gán ad Ad Library vào angle → `01-scale/angle_map.csv`
+
+`ad_id,angle,angle_name` cho toàn bộ ad trong `01-scale/ads_raw.json` (theo ad copy, video, landing page; ad cùng creative thì cùng angle; không chắc thì gán `unclear`).
 
 ## 3. Chạy
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/angle_scoreboard.py" \
+  --posts research/<slug>/01-scale/posts.csv \
+  --comments-dir research/<slug>/04-comments \
   --ads research/<slug>/01-scale/ads_raw.json --angle-map research/<slug>/01-scale/angle_map.csv \
-  --posts research/<slug>/01-scale/posts.csv [--spy-tool <export tool spy>.csv] \
-  --aov <AOV đối thủ từ 02-funnel> --cogs <giá vốn của bạn> --shipping <ship> --fees-pct 5 --bench-cpc <CPC chuẩn> \
   --assign 5 --out-md research/<slug>/01-scale/scoreboard.md --out-json research/<slug>/01-scale/scoreboard.json
 ```
-AOV lấy từ tier bundle mặc định trong `02-funnel/funnel.md` (không phải giá 1 cái).
+Có thể thêm `--posts <slug>:<file>.info.json` cho từng bài thay vì CSV.
 
-## 4. Diễn giải & chọn A1–A5
+## 4. Diễn giải & chốt A1–A5
 
 Dưới bảng của script, viết thêm:
-- Angle nào **đã được xác nhận** (proof cao, tin cậy Cao), angle nào **đang được đổ tiền mới** (nhiều ad mới 30 ngày, nghĩa là đối thủ đang scale nó ngay lúc này).
-- Angle **đang chết** (đã tắt hết, không có ad mới): không đưa vào test.
-- **Khoảng trống:** angle mà khách nhắc nhiều trong `04-comments/insights.md` nhưng đối thủ chưa chạy. Proof score bằng 0 vì chưa ai chạy, nhưng vẫn có thể dành **1 trong 5 slot** cho nó (ghi rõ "angle khoảng trống, không có dữ liệu đối thủ").
-- Chốt bảng **A1–A5**: mã · angle · proof · CPC kỳ vọng · ROAS mục tiêu · lý do chọn. Đây là input bắt buộc của `/angle-lab:angle-test`.
+- Angle nào **lan nhất** (share cao, nhiều creator), angle nào **ra đơn nhất** (nhiều bình luận muốn mua), và hai nhóm này có trùng nhau không.
+- Angle **bị chê nhiều**: vẫn có thể test, nhưng video phải xử lý objection đó ngay trong script.
+- Angle **viral mà không ai hỏi mua**: cẩn thận, giải trí tốt nhưng chưa chắc bán được.
+- **Khoảng trống:** angle khách nhắc nhiều trong bình luận nhưng chưa ai làm video. Không có điểm vì chưa có bài nào, nhưng có thể dành **1 trong 5 slot** cho nó (sửa `test_code` trong `scoreboard.json` cho khớp).
+- Chốt bảng **A1–A5**: mã · angle · điểm · tín hiệu mạnh nhất · video tham chiếu (bài có share cao nhất của angle đó). Đây là input bắt buộc của `/angle-lab:angle-test`.
 
-Ngân sách test vẫn **chia đều** 5 angle. Proof score dùng để *chọn* angle và *đặt kỳ vọng*, không dùng để chia tiền, vì chia lệch thì test không còn sạch.
+Ngân sách test vẫn **chia đều** 5 angle. Điểm chỉ dùng để *chọn* angle, không dùng để chia tiền.

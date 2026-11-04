@@ -39,13 +39,13 @@ python3 $S/variant_matrix.py --angle fixtures/angle.json --mode staged --round 1
 test "$(tail -n +2 $T/v1.csv | wc -l)" -eq 4
 pass "variant_matrix.py"
 
-python3 $S/angle_scoreboard.py --ads fixtures/ads.json --angle-map fixtures/angle_map.csv --posts fixtures/posts.csv \
-  --spy-tool fixtures/spy_tool.csv --aov 49.99 --cogs 10 --shipping 4 --fees-pct 5 --bench-cpc 0.9 --as-of 2026-11-04 --out-json $T/sb.json >/dev/null
+python3 $S/angle_scoreboard.py --posts fixtures/posts.csv --comments-dir $T/c --ads fixtures/ads.json \
+  --angle-map fixtures/angle_map.csv --as-of 2026-11-04 --out-json $T/sb.json >/dev/null
 python3 - $T/sb.json <<'PY'
-import json,sys; d=json.load(open(sys.argv[1])); a=d["angles"]
-assert d["be_roas"]==1.49 and a[0]["angle"]=="dau-lung-van-phong" and a[0]["test_code"]=="A1"
-assert sum(1 for x in a if x["test_code"])==5 and a[0]["cpc_source"]=="tool spy"
-assert next(x for x in a if x["angle"]=="tre-em")["confidence"]=="TB"
+import json,sys; a=json.load(open(sys.argv[1]))["angles"]
+top=a[0]; assert top["angle"]=="dau-lung-van-phong" and top["test_code"]=="A1" and top["creators"]==3
+assert top["comments_labeled"]==7 and top["negative_pct"]==14.3, top  # 7 bình luận TikTok nối theo URL; review Amazon không có URL bài
+assert sum(1 for x in a if x["test_code"])==5 and all("cpc_est" not in x for x in a)
 PY
 python3 $S/test_readout.py -i fixtures/meta_export.csv --price 49.99 --cogs 10 --shipping 4 --fees-pct 5 --scoreboard $T/sb.json --out-json $T/r2.json >/dev/null
 python3 -c "

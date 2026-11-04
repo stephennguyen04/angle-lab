@@ -54,22 +54,19 @@ _Nguồn: 04-comments/insights.md_
 | Điểm yếu của đối thủ | Mình làm gì | Áp dụng ở |
 |---|---|---|
 
-## 7. Bảng điểm angle: CPC / ROAS từng angle
-> CPC/ROAS của đối thủ không công khai. Cột dưới đây là **suy ra / ước tính**, có ghi nguồn và độ tin cậy.
+## 7. Bảng điểm angle (dữ liệu công khai trên mạng xã hội)
+| Angle | Điểm | Bài · creator | View trung vị | Tương tác | Share | Muốn mua | Chê | Ad active · lâu nhất | Tin cậy |
+|---|---|---|---|---|---|---|---|---|---|
 
-| Angle | Proof | Ad (active) | Mới 30d | Chạy lâu nhất | CPC ước tính | ROAS sàn suy ra | Tin cậy |
-|---|---|---|---|---|---|---|---|
-
-ROAS hoà vốn: … · CPC chuẩn: … (nguồn: …)
-_Nguồn: 01-scale/scoreboard.md_
+_Nguồn: 01-scale/scoreboard.md · 01-scale/posts.csv_
 
 ## 8. A1–A5 đưa sang test
-| Mã | Angle | Proof | CPC kỳ vọng | ROAS mục tiêu | Video tham chiếu | Lý do chọn |
-|---|---|---|---|---|---|---|
-| A1 | | | | | | |
-| A2 | | | | | | |
-| A3 | | | | | | |
-| A4 | | | | | | |
-| A5 | | | | | | |
+| Mã | Angle | Điểm | Tín hiệu mạnh nhất | Video tham chiếu | Lý do chọn |
+|---|---|---|---|---|---|
+| A1 | | | | | |
+| A2 | | | | | |
+| A3 | | | | | |
+| A4 | | | | | |
+| A5 | | | | | |
 
 → Bước tiếp: `/angle-lab:angle-test research/<slug>`

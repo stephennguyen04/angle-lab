@@ -21,7 +21,7 @@ Plugin cho **Claude Code**: với mỗi sản phẩm, AI phân tích đối th�
 | `/angle-lab:funnel` | Product page dựng thế nào, bundle bán ra sao (giá bậc thang, giá/đơn vị), funnel thẳng PDP hay qua advertorial/listicle/quiz |
 | `/angle-lab:top-videos` | Mổ 5 video top: angle, nỗi đau bề mặt → sâu, persona, **hook 0–3s theo từng khung hình**, beat, proof, format |
 | `/angle-lab:comments` | Họ bán trên nền tảng nào, **đọc và gắn nhãn từng bình luận**: chê gì, khen gì, hỏi gì → rủi ro 🔴🟡🟢, FAQ, đạn creative, điểm làm tốt hơn |
-| `/angle-lab:scoreboard` | **CPC / ROAS từng angle** của đối thủ: proof score, CPC ước tính, ROAS sàn suy ra, độ tin cậy → chốt A1–A5 kèm KPI kỳ vọng |
+| `/angle-lab:scoreboard` | Xếp hạng angle của đối thủ **chỉ bằng dữ liệu công khai trên mạng xã hội**: share, tương tác, view, số creator, % bình luận muốn mua/chê, Ad Library → chốt A1–A5 |
 | `/angle-lab:angle-test` | Brief dựng lại 5 video top thành 5 video test (1 video = 1 angle), cấu trúc camp, ngân sách theo CPA hoà vốn, naming, rule kill |
 | `/angle-lab:winner <export.csv>` | Đọc số → video nào ra sale → mổ video đó → **ANGLE KIM CHỈ NAM** (bất biến vs biến được đổi) + `angle.json` |
 | `/angle-lab:clone` | Nhân bản bằng AI theo vòng (hook → nhân vật → bối cảnh), có **kiểm tra angle lock**: lạc angle là loại |
@@ -58,7 +58,7 @@ Mọi thứ nằm trong project của bạn, mỗi sản phẩm 1 thư mục, n�
 ```
 research/<san-pham>/
   00-input.md
-  01-scale/      ads_raw.json · scale.json · scale.md · angle_map.csv · scoreboard.md/json
+  01-scale/      ads_raw.json · scale.json · scale.md · posts.csv · angle_map.csv · scoreboard.md/json
   02-funnel/     lp1/step1.png … · product.json · funnel.md
   03-videos/     v1..v5/{hook/, scenes/, transcript.txt, analysis.md} · videos.md
   04-comments/   raw/ · comments.jsonl · labels.jsonl · report.md · insights.md
@@ -80,7 +80,7 @@ python3 scripts/shopify_product.py "<PDP url>"                               # v
 bash    scripts/video_prep.sh "<video|url>" out/                             # khung hook + cảnh + transcript
 python3 scripts/comments.py prep -i tiktok:a.info.json -i amazon:r.csv --out-dir c/
 python3 scripts/comments.py report --out-dir c/                              # sau khi AI gắn nhãn
-python3 scripts/angle_scoreboard.py --ads ads.json --angle-map angle_map.csv --posts posts.csv --aov 79 --cogs 12 --shipping 5 --bench-cpc 0.9
+python3 scripts/angle_scoreboard.py --posts posts.csv --comments-dir c/ --ads ads.json --angle-map angle_map.csv
 python3 scripts/test_readout.py -i export.csv --price 49.99 --cogs 12 --shipping 5 --scoreboard scoreboard.json
 python3 scripts/variant_matrix.py --angle angle.json --mode staged --round 1
 bash    tests/run_tests.sh                                                   # smoke test
@@ -90,7 +90,7 @@ bash    tests/run_tests.sh                                                   # s
 
 - **Angle ≠ Hook ≠ Format.** Angle = ai + nỗi đau + cơ chế (lý do mua). Hook = cách mở 3s đầu. Format = cách quay. Nhân bản = giữ angle, đổi hook/nhân vật/bối cảnh.
 - **Naming ad:** `<yymmdd>_A<n>-<slug>_V<nn>_H<n>` (test angle) · `<yymmdd>_A<n>_V<nn>_H#_C#_S#` (nhân bản). Script đọc kết quả dựa vào tên này.
-- **CPC/ROAS của đối thủ không công khai.** Bảng điểm chỉ đưa ra ROAS *sàn* suy ra (ad sống ≥30 ngày ⇒ ROAS ≥ hoà vốn) và CPC *ước tính* có ghi nguồn. Số thật chỉ có sau test, và `test_readout.py --scoreboard` sẽ so dự đoán với thực tế.
+- **Không ước tính CPC/ROAS của đối thủ** (không công khai). Bảng điểm angle chỉ dùng số nhìn thấy được trên mạng xã hội. CPC/ROAS duy nhất là số thật từ ad của bạn, và `test_readout.py --scoreboard` so nó với hạng dự đoán.
 - **Rule mặc định:** WINNER = ≥3 đơn & CPA ≤ CPA hoà vốn; KILL = chi ≥1.5× CPA hoà vốn mà 0 đơn, hoặc hook rate <15% sau 3.000 hiển thị. Chỉnh bằng flag.
 - **"Edit lại video đối thủ" = dựng lại theo cấu trúc**, không re-up nguyên footage/giọng/logo của họ (dễ dính report IP → mất ad/page, data test cũng hỏng).
 - Ngưỡng scale (10/50/200 ad active) và rule kill là heuristic, phải chỉnh theo ngách & biên lợi nhuận.
