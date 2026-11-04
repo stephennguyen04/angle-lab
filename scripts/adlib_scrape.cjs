@@ -3,7 +3,11 @@
  * adlib_scrape.cjs: Fallback thu thập ad từ trang Meta Ad Library công khai (khi không có MCP META_ADS).
  *
  * Dùng:
- *   node adlib_scrape.cjs "<URL Ad Library>" <out.json> [--max 300] [--headful]
+ *   node adlib_scrape.cjs "<URL Ad Library>" <out.json> [--max 300] [--headful] [--platform instagram] [--details 30]
+ *   --platform instagram : chỉ lấy ad có placement Instagram (thêm publisher_platforms[0]=instagram vào URL)
+ *   --details N          : mở "See ad details" của N ad đầu để Meta trả thêm EU reach (chỉ có với ad phân phối ở EU/UK/Brazil)
+ *   Song song, mọi response GraphQL được ghi vào <out>.graphql.jsonl → chạy adlib_parse.py để có dữ liệu đầy đủ & chuẩn nhất
+ *   (placement, collation_count, EU reach, partnership). Phần đọc DOM bên dưới chỉ là dự phòng.
  *   URL ví dụ: https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&view_all_page_id=<PAGE_ID>&media_type=all
  *
  * Lưu ý:
@@ -25,13 +29,31 @@ const out = args[1] || 'ads_raw.json';
 const mi = args.indexOf('--max');
 const max = mi >= 0 ? Number(args[mi + 1]) : 300;
 const headful = args.includes('--headful');
+const pi = args.indexOf('--platform');
+const platform = pi >= 0 ? args[pi + 1] : null;
+const di = args.indexOf('--details');
+const nDetails = di >= 0 ? Number(args[di + 1]) : 0;
 if (!url) { console.error('Thiếu URL Ad Library'); process.exit(1); }
+let target = url;
+if (platform && !/publisher_platforms/.test(target)) target += (target.includes('?') ? '&' : '?') + `publisher_platforms[0]=${encodeURIComponent(platform)}`;
+const gqlOut = out.replace(/\.json$/, '') + '.graphql.jsonl';
+fs.writeFileSync(gqlOut, '');
 
 (async () => {
   const browser = await chromium.launch({ headless: !headful });
   const ctx = await browser.newContext({ locale: 'en-US', viewport: { width: 1366, height: 900 } });
   const page = await ctx.newPage();
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  let nGql = 0;
+  page.on('response', async (r) => {
+    if (!/\/api\/graphql|\/ads\/library\/async/.test(r.url())) return;
+    try {
+      const body = await r.text();
+      if (body.includes('ad_archive_id') || body.includes('adArchiveID') || body.includes('eu_total_reach')) {
+        fs.appendFileSync(gqlOut, JSON.stringify({ url: r.url(), body }) + '\n'); nGql++;
+      }
+    } catch (e) {}
+  });
+  await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForTimeout(6000);
 
   const totalText = await page.evaluate(() => {
@@ -46,6 +68,18 @@ if (!url) { console.error('Thiếu URL Ad Library'); process.exit(1); }
     const c = await page.evaluate(() => (document.body.innerText.match(/(Library ID|ID thư viện)\s*:?\s*\d+/g) || []).length);
     if (c >= max) break;
     if (c === lastCount) { if (++stable >= 5) break; } else { stable = 0; lastCount = c; }
+  }
+
+  // Mở chi tiết vài ad đầu để Meta trả EU reach / đối tượng (nếu ad có phân phối ở EU)
+  for (let k = 0; k < nDetails; k++) {
+    const btns = page.locator('text=/^(See ad details|See summary details|Xem chi tiết quảng cáo|Xem chi tiết)$/');
+    if (k >= await btns.count()) break;
+    try {
+      await btns.nth(k).click({ timeout: 5000 });
+      await page.waitForTimeout(2000);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(600);
+    } catch (e) {}
   }
 
   const ads = await page.evaluate(() => {
@@ -96,7 +130,10 @@ if (!url) { console.error('Thiếu URL Ad Library'); process.exit(1); }
     return res;
   });
 
-  fs.writeFileSync(out, JSON.stringify({ source_url: url, total_text: totalText, scraped_at: new Date().toISOString(), ads }, null, 2));
-  console.log(`Đã lưu ${ads.length} ad → ${out}${totalText ? ` (Ad Library báo: ${totalText})` : ''}`);
+  if (platform) ads.forEach(a => { a.platforms = platform; });
+  fs.writeFileSync(out, JSON.stringify({ source_url: target, total_text: totalText, scraped_at: new Date().toISOString(), ads }, null, 2));
+  console.log(`Đã lưu ${ads.length} ad (DOM) → ${out}${totalText ? ` (Ad Library báo: ${totalText})` : ''}`);
+  console.log(`Đã ghi ${nGql} response GraphQL → ${gqlOut}`);
+  console.log(`Bước tiếp (khuyên dùng): python3 adlib_parse.py -i ${gqlOut} -o ${out.replace(/\.json$/, '')}.parsed.json`);
   await browser.close();
 })().catch(e => { console.error(e); process.exit(1); });

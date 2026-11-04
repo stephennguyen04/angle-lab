@@ -39,7 +39,7 @@ python3 $S/variant_matrix.py --angle fixtures/angle.json --mode staged --round 1
 test "$(tail -n +2 $T/v1.csv | wc -l)" -eq 4
 pass "variant_matrix.py"
 
-python3 $S/angle_scoreboard.py --posts fixtures/posts.csv --comments-dir $T/c --ads fixtures/ads.json \
+python3 $S/angle_scoreboard.py --focus all --posts fixtures/posts.csv --comments-dir $T/c --ads fixtures/ads.json \
   --angle-map fixtures/angle_map.csv --as-of 2026-11-04 --out-json $T/sb.json >/dev/null
 python3 - $T/sb.json <<'PY'
 import json,sys; a=json.load(open(sys.argv[1]))["angles"]
@@ -53,6 +53,48 @@ import json;d=json.load(open('$T/r2.json'));assert d['breakeven_roas']==1.49 and
 assert any('tốt hơn dự đoán' in n for r in d['spy_vs_actual'] for n in r['notes'])"
 pass "angle_scoreboard.py + test_readout --scoreboard"
 
-bash -n $S/video_prep.sh && node --check $S/capture_page.cjs && node --check $S/adlib_scrape.cjs && python3 -m py_compile $S/shopify_product.py
+# ---- Meta Ads + Instagram ----
+python3 $S/adlib_parse.py -i fixtures/adlib.har -o $T/ads.json 2>/dev/null >/dev/null
+python3 - $T/ads.json <<'PY'
+import json,sys; d={x["id"]:x for x in json.load(open(sys.argv[1]))}
+assert len(d)==6 and d["9001"]["eu_reach"]==1850000 and d["9002"]["partnership"] and d["9001"]["duplicates"]==12
+assert d["9001"]["platforms"]=="facebook,instagram" and d["9006"]["is_active"] is False and d["9001"]["start_date"]=="2026-07-09"
+PY
+python3 $S/adlib_parse.py -i fixtures/adlib.har -o $T/ads_ig.json --platform instagram 2>/dev/null >/dev/null
+python3 -c "import json;assert len(json.load(open('$T/ads_ig.json')))==4"
+pass "adlib_parse.py (HAR, for(;;);, base64, gộp EU reach)"
+
+python3 $S/ig_collect.py import fixtures/apify_instagram.json --out-dir $T/ig >/dev/null
+python3 - $T/ig <<'PY'
+import csv,sys,json,os; d=sys.argv[1]; rows=list(csv.DictReader(open(d+"/posts.csv")))
+assert len(rows)==7 and rows[1]["is_partnership"]=="True" and rows[0]["followers"]=="85000" and rows[0]["date"]=="2026-09-02"
+c=json.load(open(d+"/comments/AAA1.json")); assert len(c["comments"])==3 and c["webpage_url"].endswith("AAA1/")
+# gán angle như AI sẽ làm, rồi import lại: angle phải được giữ
+for r in rows: r["angle"]={"AAA":"dau-lung-van-phong","BBB":"so-sanh","CCC":"qua-tang","DDD":"tu-the-xau"}[r["url"].rstrip("/").split("/")[-1][:3]]
+w=csv.DictWriter(open(d+"/posts.csv","w",newline=""),fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
+PY
+python3 $S/ig_collect.py import fixtures/apify_instagram.json --out-dir $T/ig >/dev/null
+python3 -c "import csv;r=list(csv.DictReader(open('$T/ig/posts.csv')));assert len(r)==7 and all(x['angle'] for x in r)"
+python3 - <<'PY'
+import sys, types; sys.path.insert(0, "../scripts"); from ig_collect import row_from_post
+from datetime import datetime
+p = types.SimpleNamespace(shortcode="XYZ", owner_username="brand", video_play_count=None, video_view_count=5000, likes=-1, comments=12,
+      date_utc=datetime(2026,10,1), is_video=True, caption="hi #ad", caption_hashtags=["ad"], is_sponsored=True, sponsor_users=[], video_url="v.mp4")
+r = row_from_post(p, 1000); assert r["views"]==5000 and r["likes"] is None and r["is_partnership"] and r["url"].endswith("/p/XYZ/")
+PY
+pass "ig_collect.py (Apify import, giữ angle khi chạy lại, instaloader row)"
+
+printf 'ad_id,angle,angle_name\n9001,dau-lung-van-phong,Đau lưng\n9002,dau-lung-van-phong,Đau lưng\n9003,so-sanh,So sánh\n9004,qua-tang,Quà tặng\n9005,chuyen-gia,Chuyên gia\n9006,tu-the-xau,Tư thế\n' > $T/amap.csv
+python3 $S/angle_scoreboard.py --posts $T/ig/posts.csv --ads $T/ads.json --angle-map $T/amap.csv --as-of 2026-11-04 --out-json $T/sb2.json >/dev/null
+python3 - $T/sb2.json <<'PY'
+import json,sys; d=json.load(open(sys.argv[1])); a={x["angle"]:x for x in d["angles"]}
+assert d["focus"]=="meta-ig" and d["angles"][0]["angle"]=="dau-lung-van-phong"
+assert "chuyen-gia" not in a, "ad chỉ chạy Audience Network phải bị loại ở focus meta-ig"
+assert a["dau-lung-van-phong"]["eu_reach_total"]==2270000 and a["dau-lung-van-phong"]["partnership_ads"]==1
+assert d["top_ads"][0]["id"]=="9001" and d["top_posts"][0]["url"].endswith("AAA2/")
+PY
+pass "angle_scoreboard.py --focus meta-ig (top ad, top bài IG)"
+
+bash -n $S/video_prep.sh && node --check $S/capture_page.cjs && node --check $S/adlib_scrape.cjs && python3 -m py_compile $S/shopify_product.py $S/csvio.py
 pass "syntax video_prep.sh / capture_page.cjs / adlib_scrape.cjs / shopify_product.py"
 echo "Tất cả test đều pass."

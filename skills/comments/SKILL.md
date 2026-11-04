@@ -27,7 +27,8 @@ Ghi `04-comments/platforms.md`: bảng nền tảng · link · có bán không �
 | Nguồn | Cách lấy |
 |---|---|
 | TikTok / YouTube | `yt-dlp --skip-download --write-comments --write-info-json -o "04-comments/raw/%(extractor)s_%(id)s" <url>` → file `.info.json` có sẵn `comments` |
-| Instagram / Facebook post & ad | Thường cần đăng nhập nên **nhờ người dùng export** (ExportComments, Apify, extension) ra CSV/JSON, hoặc copy-paste vào .txt. Với ad đang chạy: mở post của ad từ Ad Library → xem bình luận |
+| **Instagram** | `ig_collect.py profile <brand> --reels-only --comments 300 --login <user>` (instaloader, cần session) hoặc `ig_collect.py import <export Apify>.json` → `ig/comments/*.json` đọc thẳng bằng `comments.py prep -i instagram:<file>`. Lấy thêm `tagged <brand>` (UGC/affiliate tag brand) và `urls <link>` cho bài hợp tác creator |
+| Facebook post & ad | Thường cần đăng nhập nên **nhờ người dùng export** (ExportComments, Apify, extension) ra CSV/JSON, hoặc copy-paste vào .txt. Với ad đang chạy: mở post của ad từ Ad Library → xem bình luận. CSV từ Excel (dấu `;`, cột tiếng Việt như "Nội dung") đọc được trực tiếp |
 | Amazon / Trustpilot / Shopee / Etsy | WebFetch từng trang review (ưu tiên lọc 1–3 sao VÀ 5 sao), lưu thành CSV `text,rating,likes,date` |
 | Reddit | Thêm `.json` vào cuối URL thread rồi WebFetch → lấy `body` + `score` |
 | Review trên chính PDP (Judge.me/Loox…) | Từ text đã capture ở `02-funnel/*.txt`, nhưng **cảnh giác review do shop tự đăng**, nên đánh dấu `platform=pdp` để tách riêng |

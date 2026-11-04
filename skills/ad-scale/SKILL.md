@@ -8,22 +8,32 @@ argument-hint: "<Page ID | tên brand | link Ad Library> [country]"
 
 Script: `${CLAUDE_PLUGIN_ROOT}/scripts/` (nếu trống, xem cách tìm trong `/angle-lab:spy`). Lưu kết quả vào `research/<slug>/01-scale/`.
 
-## 1. Thu thập ad (chọn nguồn theo thứ tự ưu tiên)
+## 1. Thu thập ad Meta (chọn nguồn theo thứ tự ưu tiên)
 
-**A. MCP Meta Ads (`ads_library_search`)**, nếu có connector META_ADS:
-- Gọi với `page_ids=[<PAGE_ID>]` (ưu tiên) hoặc `search_terms=<brand/sản phẩm>`, `countries=[<CC>]`, `ad_active_status=ALL`, `limit=50`.
-- Gọi thêm 1 lần `ad_active_status=ACTIVE` để biết **tổng số ad active ước tính** (ghi lại con số "estimated result count").
-- Lưu các ad trả về thành `01-scale/ads_raw.json` (list, mỗi ad giữ: id, start date, stop date, active, body, snapshot url, link url, media). Tool này giới hạn 50 ad/lần, đủ để đo nhịp gần đây. Tổng số ad active lấy từ estimated count.
+Mục tiêu là có đủ các trường: ngày chạy, active, **số bản nhân (collation)**, **placement** (có chạy Instagram không), **lượt tiếp cận EU**, **ad hợp tác creator**, video, landing. Mọi nguồn đều đổ về `adlib_parse.py` → `01-scale/ads_raw.json`.
 
-**B. Scraper Playwright** (khi không có MCP, hoặc cần quét sâu hơn):
+**A. File HAR (ít rủi ro nhất, dữ liệu đầy đủ nhất).** Nhờ người dùng:
+1. Mở Ad Library của page đối thủ (`view_all_page_id=<PAGE_ID>`), quốc gia là thị trường chính. Thêm `&publisher_platforms[0]=instagram` nếu chỉ muốn ad chạy Instagram.
+2. Mở DevTools → tab Network, cuộn hết danh sách; bấm "See ad details" ở các ad sống lâu nhất (để có EU reach).
+3. Chuột phải trong tab Network → **Save all as HAR** → gửi file.
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/adlib_scrape.cjs" "https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=<CC>&view_all_page_id=<PAGE_ID>&media_type=all" research/<slug>/01-scale/ads_raw.json --max 300
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/adlib_parse.py" -i <file>.har -o research/<slug>/01-scale/ads_raw.json [--page-id <PAGE_ID>]
 ```
-Gặp login wall/captcha thì bảo người dùng chạy lại với `--headful` trên máy họ.
 
-**C. Người dùng tự export / dán** (từ công cụ spy như Foreplay, Minea, PiPiAds…): nhận CSV/JSON bất kỳ. `ad_cadence.py` tự nhận tên cột phổ biến.
+**B. MCP Meta Ads (`ads_library_search`)**, nếu có connector META_ADS:
+- Gọi với `page_ids=[<PAGE_ID>]` (ưu tiên) hoặc `search_terms`, `countries=[<CC>]`, `ad_active_status=ALL`, `limit=50`; gọi thêm 1 lần `ACTIVE` để ghi **estimated result count** (tổng ad active).
+- Lưu kết quả JSON rồi chạy `adlib_parse.py -i <kết quả>.json -o …/ads_raw.json`. Tool giới hạn 50 ad/lần, đủ để đo nhịp gần đây.
 
-Ngoài Meta: nếu họ chạy TikTok, ghi chú thêm (TikTok Creative Center Top Ads / TikTok Shop), vì không phải nơi nào cũng có thư viện đầy đủ, nên ghi rõ giới hạn dữ liệu.
+**C. Scraper Playwright** (bắt response GraphQL, không đọc giao diện):
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/adlib_scrape.cjs" "https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=<CC>&view_all_page_id=<PAGE_ID>&media_type=all" research/<slug>/01-scale/scrape.json --max 300 [--platform instagram] [--details 30]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/adlib_parse.py" -i research/<slug>/01-scale/scrape.graphql.jsonl -o research/<slug>/01-scale/ads_raw.json
+```
+Gặp login wall/captcha thì chạy lại với `--headful` trên máy người dùng, hoặc chuyển sang cách A.
+
+**D. Export từ tool spy / Apify** (Foreplay, Minea, PiPiAds, actor Meta Ad Library…): `adlib_parse.py` nhận JSON bất kỳ có `ad_archive_id`; CSV thì đưa thẳng cho `ad_cadence.py` (tự nhận tên cột EN/VN, dấu `,` hoặc `;`).
+
+**Lượt tiếp cận EU** chỉ có với ad **có phân phối ở EU / UK / Brazil** (quy định minh bạch DSA). Đối thủ bán ở EU/UK thì chọn quốc gia đó trên Ad Library và mở "See ad details" để lấy. Đối thủ chỉ bán ở Mỹ/VN thì cột này trống, và đó là chuyện bình thường.
 
 ## 2. Tính toán
 
@@ -38,7 +48,9 @@ Script ra: mức scale, ad mới 7/14/30 ngày, histogram 12 tuần, verdict nh�
 Đừng chỉ chép số. Diễn giải:
 - **Giai đoạn sản phẩm:** đang test (ít ad, ad non) · đang lên (ad mới tăng dần theo tuần) · đỉnh (nhiều ad active, ra ad đều, nhiều ad >30 ngày) · đi xuống (ngưng ra ad mới, chỉ còn ad cũ).
 - **Ra ad mới đều không?** Ra đều = có team creative đang test liên tục, đối thủ mạnh. Theo đợt = launch theo batch. Ngưng = có thể đang vắt winner hoặc bỏ sản phẩm.
-- **Winner thật:** ad active >30 ngày, nhất là ad có nhiều bản nhân ("N ads use this creative"), là ad đang ra tiền.
+- **Winner thật:** hạng Long-Runner (≥60 ngày) / Performer (30–59 ngày), nhất là ad có nhiều bản nhân ("N ads use this creative"), tiếp cận EU cao, hoặc được chạy dưới dạng **hợp tác creator** (đối thủ chịu trả tiền creator = đã tin angle).
+- **Instagram:** % ad có placement Instagram. Cao → đối thủ coi IG là kênh chính, nên ưu tiên mổ Reels của họ.
+- **Nhiều page:** cùng creative chạy trên nhiều page (Brand, Brand EU, Brand Deals…) là dấu hiệu scale mạnh.
 - **Landing:** % ad về PDP vs advertorial/listicle → chuyển thông tin cho mảng funnel.
 - **Nhiều page / nhiều store?** Nếu cùng creative xuất hiện ở page khác, ghi lại (đối thủ chạy đa page để scale).
 - Kết luận 3 dòng: *đang scale tới đâu · tốc độ ra ad · ý nghĩa với mình (thị trường còn chỗ không)*.

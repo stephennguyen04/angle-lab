@@ -21,7 +21,7 @@ Plugin cho **Claude Code**: với mỗi sản phẩm, AI phân tích đối th�
 | `/angle-lab:funnel` | Product page dựng thế nào, bundle bán ra sao (giá bậc thang, giá/đơn vị), funnel thẳng PDP hay qua advertorial/listicle/quiz |
 | `/angle-lab:top-videos` | Mổ 5 video top: angle, nỗi đau bề mặt → sâu, persona, **hook 0–3s theo từng khung hình**, beat, proof, format |
 | `/angle-lab:comments` | Họ bán trên nền tảng nào, **đọc và gắn nhãn từng bình luận**: chê gì, khen gì, hỏi gì → rủi ro 🔴🟡🟢, FAQ, đạn creative, điểm làm tốt hơn |
-| `/angle-lab:scoreboard` | Xếp hạng angle của đối thủ **chỉ bằng dữ liệu công khai trên mạng xã hội**: share, tương tác, view, số creator, % bình luận muốn mua/chê, Ad Library → chốt A1–A5 |
+| `/angle-lab:scoreboard` | Tìm angle / ad / reel **mạnh nhất trên Meta Ads + Instagram** chỉ bằng dữ liệu công khai: ad sống lâu, bản nhân, tiếp cận EU, % ad IG, hợp tác creator, view/follower, % bình luận muốn mua/chê → Top 10 ad, Top 10 bài IG, chốt A1–A5 |
 | `/angle-lab:angle-test` | Brief dựng lại 5 video top thành 5 video test (1 video = 1 angle), cấu trúc camp, ngân sách theo CPA hoà vốn, naming, rule kill |
 | `/angle-lab:winner <export.csv>` | Đọc số → video nào ra sale → mổ video đó → **ANGLE KIM CHỈ NAM** (bất biến vs biến được đổi) + `angle.json` |
 | `/angle-lab:clone` | Nhân bản bằng AI theo vòng (hook → nhân vật → bối cảnh), có **kiểm tra angle lock**: lạc angle là loại |
@@ -47,7 +47,8 @@ claude --plugin-dir /đường/dẫn/angle-lab
 | Python 3.9+ | ✅ | toàn bộ script phân tích (chỉ dùng thư viện chuẩn) |
 | `ffmpeg` | ✅ cho mổ video | cắt khung hook 0–3s, keyframe cảnh |
 | Node + `playwright` | nên có | capture funnel mobile, scraper Ad Library dự phòng (`npm i -g playwright && npx playwright install chromium`) |
-| `yt-dlp` | nên có | tải video & **bình luận** TikTok/YouTube (`pipx install yt-dlp`) |
+| `yt-dlp` | nên có | tải video & **bình luận** TikTok/YouTube, tải reel IG (`pipx install yt-dlp`) |
+| `instaloader` | nên có | lấy Reels/bài IG, bài được tag, hashtag, bình luận (`pip install instaloader`, rồi `instaloader -l <user>` để có session). Không có thì import export Apify |
 | `faster-whisper` | tuỳ chọn | transcript lời thoại video (`pip install faster-whisper`) |
 | MCP **Meta Ads** | tuỳ chọn (khuyên dùng) | `ads_library_search`: lấy ad đối thủ không cần scrape |
 | MCP **Higgsfield** | tuỳ chọn | sinh video AI khi nhân bản (đổi nhân vật/bối cảnh) |
@@ -58,7 +59,7 @@ Mọi thứ nằm trong project của bạn, mỗi sản phẩm 1 thư mục, n�
 ```
 research/<san-pham>/
   00-input.md
-  01-scale/      ads_raw.json · scale.json · scale.md · posts.csv · angle_map.csv · scoreboard.md/json
+  01-scale/      ads_raw.json · scale.json · scale.md · ig/posts.csv · ig/comments/ · angle_map.csv · scoreboard.md/json
   02-funnel/     lp1/step1.png … · product.json · funnel.md
   03-videos/     v1..v5/{hook/, scenes/, transcript.txt, analysis.md} · videos.md
   04-comments/   raw/ · comments.jsonl · labels.jsonl · report.md · insights.md
@@ -73,14 +74,17 @@ research/<san-pham>/
 ## Script (dùng độc lập được)
 
 ```bash
-python3 scripts/ad_cadence.py -i ads.json --brand-domain brand.com          # scale & nhịp ra ad
-node    scripts/adlib_scrape.cjs "<Ad Library URL>" ads.json --max 300       # fallback lấy ad
+python3 scripts/adlib_parse.py -i ads.har -o ads.json                       # HAR / GraphQL / JSON → ad chuẩn (placement, bản nhân, EU reach, hợp tác)
+node    scripts/adlib_scrape.cjs "<Ad Library URL>" scrape.json --platform instagram --details 30   # bắt GraphQL
+python3 scripts/ad_cadence.py -i ads.json --brand-domain brand.com          # scale, nhịp ra ad, hạng Long-Runner, % IG, EU reach
+python3 scripts/ig_collect.py profile <brand> --reels-only --comments 200 --login <user>        # Reels + bình luận IG
+python3 scripts/ig_collect.py import apify_instagram.json                    # hoặc từ export Apify
 node    scripts/capture_page.cjs "<landing>" out/ --follow-cta               # funnel mobile
 python3 scripts/shopify_product.py "<PDP url>"                               # variants / bundle
 bash    scripts/video_prep.sh "<video|url>" out/                             # khung hook + cảnh + transcript
 python3 scripts/comments.py prep -i tiktok:a.info.json -i amazon:r.csv --out-dir c/
 python3 scripts/comments.py report --out-dir c/                              # sau khi AI gắn nhãn
-python3 scripts/angle_scoreboard.py --posts posts.csv --comments-dir c/ --ads ads.json --angle-map angle_map.csv
+python3 scripts/angle_scoreboard.py --posts ig/posts.csv --comments-dir c/ --ads ads.json --angle-map angle_map.csv   # Top ad, top reel, A1–A5
 python3 scripts/test_readout.py -i export.csv --price 49.99 --cogs 12 --shipping 5 --scoreboard scoreboard.json
 python3 scripts/variant_matrix.py --angle angle.json --mode staged --round 1
 bash    tests/run_tests.sh                                                   # smoke test
@@ -94,3 +98,12 @@ bash    tests/run_tests.sh                                                   # s
 - **Rule mặc định:** WINNER = ≥3 đơn & CPA ≤ CPA hoà vốn; KILL = chi ≥1.5× CPA hoà vốn mà 0 đơn, hoặc hook rate <15% sau 3.000 hiển thị. Chỉnh bằng flag.
 - **"Edit lại video đối thủ" = dựng lại theo cấu trúc**, không re-up nguyên footage/giọng/logo của họ (dễ dính report IP → mất ad/page, data test cũng hỏng).
 - Ngưỡng scale (10/50/200 ad active) và rule kill là heuristic, phải chỉnh theo ngách & biên lợi nhuận.
+
+## Tham khảo
+
+Ý tưởng được học từ các dự án mã nguồn mở (không sao chép code):
+- [seancrowe01/ads-machine](https://github.com/seancrowe01/ads-machine): xếp hạng ad theo số ngày chạy (Long-Runner / Performer / Solid / Testing), vòng lặp winner → thư viện hook.
+- [NiksHacks/meta-ads-library-scraper](https://github.com/NiksHacks/meta-ads-library-scraper): bắt response GraphQL thay vì đọc giao diện, và cách đọc file HAR do người dùng tự lưu.
+- [instaloader](https://github.com/instaloader/instaloader): thư viện lấy dữ liệu Instagram công khai.
+
+Lưu ý: chỉ thu thập dữ liệu công khai, giữ tốc độ vừa phải và tôn trọng điều khoản của Meta / Instagram.

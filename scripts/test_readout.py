@@ -28,6 +28,9 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from csvio import read_csv_rows  # noqa: E402
+
 ALIASES = {
     "name": ["ad name", "tên quảng cáo", "ad_name", "creative name", "tên ad"],
     "spend": ["amount spent", "số tiền đã chi tiêu", "spend", "cost", "chi phí", "chi tiêu"],
@@ -162,7 +165,7 @@ def main():
     if be <= 0:
         sys.exit(f"CPA hoà vốn ≤ 0 ({be:.2f}): sản phẩm lỗ ngay cả khi ads miễn phí, xem lại giá/giá vốn")
 
-    rows = list(csv.DictReader(Path(a.input).read_text(encoding="utf-8-sig").splitlines()))
+    rows = read_csv_rows(a.input)
     if not rows:
         sys.exit("File rỗng")
     cols = map_cols(list(rows[0].keys()))

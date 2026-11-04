@@ -30,6 +30,9 @@ import unicodedata
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from csvio import norm_key, parse_count, read_csv_rows  # noqa: E402
+
 TEXT_KEYS = ["text", "comment", "content", "body", "review", "message", "comment_text", "review_text", "noi_dung", "binh_luan"]
 LIKE_KEYS = ["like_count", "likes", "digg_count", "reactions", "helpful", "helpful_votes", "upvotes", "score", "luot_thich"]
 DATE_KEYS = ["timestamp", "date", "created_at", "create_time", "time", "published_at", "ngay"]
@@ -74,7 +77,7 @@ SEVERITY_WEIGHT = {0: 0.5, 1: 1, 2: 3, 3: 8}
 
 
 def nk(k: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "_", k.strip().lower()).strip("_")
+    return norm_key(k)
 
 
 def first(d: dict, keys):
@@ -96,21 +99,14 @@ def dedupe_key(platform: str, t: str) -> str:
 
 
 def to_int(v) -> int:
-    if v is None:
-        return 0
-    s = str(v).lower().replace(",", "").strip()
-    m = re.match(r"([\d.]+)\s*([km])?", s)
-    if not m:
-        return 0
-    n = float(m[1])
-    return int(n * (1000 if m[2] == "k" else 1_000_000 if m[2] == "m" else 1))
+    return parse_count(v) or 0
 
 
 def read_any(path: Path) -> list[dict]:
     suf = path.suffix.lower()
     raw = path.read_text(encoding="utf-8-sig", errors="replace")
-    if suf == ".csv":
-        return list(csv.DictReader(raw.splitlines()))
+    if suf in (".csv", ".tsv"):
+        return read_csv_rows(path)
     if suf == ".jsonl":
         return [json.loads(l) for l in raw.splitlines() if l.strip()]
     if suf == ".json":
@@ -225,8 +221,10 @@ def cmd_report(a):
         for l in load_jsonl(lf):
             if l.get("id") in comments:
                 labels[l["id"]] = l
-    if not comments:
+    if not (out / "comments.jsonl").exists():
         sys.exit("Chưa có comments.jsonl. Chạy prep trước.")
+    if not comments:
+        sys.exit("comments.jsonl có 0 bình luận (file nguồn rỗng hoặc toàn emoji/trùng). Kiểm tra lại file đầu vào của prep.")
     unlabeled = [cid for cid in comments if cid not in labels]
 
     rows = []

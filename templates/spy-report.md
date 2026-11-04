@@ -54,11 +54,13 @@ _Nguồn: 04-comments/insights.md_
 | Điểm yếu của đối thủ | Mình làm gì | Áp dụng ở |
 |---|---|---|
 
-## 7. Bảng điểm angle (dữ liệu công khai trên mạng xã hội)
-| Angle | Điểm | Bài · creator | View trung vị | Tương tác | Share | Muốn mua | Chê | Ad active · lâu nhất | Tin cậy |
-|---|---|---|---|---|---|---|---|---|---|
+## 7. Mạnh nhất trên Meta Ads + Instagram
+| Angle | Điểm | Ad active · lâu nhất | Bản nhân | Tiếp cận EU | % ad IG | Hợp tác creator | View/follower | Muốn mua | Chê | Tin cậy |
+|---|---|---|---|---|---|---|---|---|---|---|
 
-_Nguồn: 01-scale/scoreboard.md · 01-scale/posts.csv_
+**Top 3 ad Meta:** …
+**Top 3 reel/bài Instagram:** …
+_Nguồn: 01-scale/scoreboard.md · 01-scale/ig/posts.csv_
 
 ## 8. A1–A5 đưa sang test
 | Mã | Angle | Điểm | Tín hiệu mạnh nhất | Video tham chiếu | Lý do chọn |

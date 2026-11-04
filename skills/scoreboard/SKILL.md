@@ -1,67 +1,70 @@
 ---
 name: scoreboard
-description: Chấm điểm từng ANGLE của đối thủ chỉ bằng dữ liệu công khai trên mạng xã hội (view, like, comment, share, save trên TikTok/Instagram/Facebook/YouTube, số creator cùng đánh angle, % bình luận muốn mua hoặc chê, cộng tín hiệu công khai từ Ad Library), rồi chọn A1–A5 để đưa sang bước test angle. Dùng khi hỏi "angle nào của đối thủ mạnh nhất", "xếp hạng angle", "chọn angle để test", "angle nào viral", hoặc là bước cuối của /angle-lab:spy.
+description: Tìm angle, ad và bài MẠNH NHẤT của đối thủ trên Meta Ads + Instagram chỉ bằng dữ liệu công khai. Phía Meta Ads gồm ad sống lâu, bản nhân, lượt tiếp cận EU, % ad chạy Instagram, ad hợp tác creator. Phía Instagram gồm view/follower của Reels, tương tác, bài UGC/affiliate, % bình luận muốn mua hoặc chê. Kết quả là bảng điểm angle, Top 10 ad, Top 10 bài IG, rồi chọn A1–A5 để test. Dùng khi hỏi "angle nào mạnh nhất", "ad nào mạnh nhất trên Meta", "reel nào mạnh nhất", "tìm mạnh nhất trên insta và meta ads", "chọn angle để test", hoặc là bước cuối của /angle-lab:spy.
 argument-hint: "<research/<slug>>"
 ---
 
-# /angle-lab:scoreboard: Xếp hạng angle bằng dữ liệu mạng xã hội → A1–A5
+# /angle-lab:scoreboard: Angle / ad / bài mạnh nhất trên Meta Ads + Instagram → A1–A5
 
-Chỉ dùng **số nhìn thấy công khai**. Không ước tính CPC, ROAS hay chi tiêu của đối thủ, vì những số đó không công khai và đoán ra chỉ gây hiểu sai. Số CPC/ROAS duy nhất trong quy trình là số **thật** từ ad của chính bạn, ở bước test.
+Chỉ dùng **số công khai**. Không ước tính CPC, ROAS hay chi tiêu của đối thủ. Mặc định `--focus meta-ig`: chỉ chấm bài Instagram/Facebook và ad có placement Facebook/Instagram (`--focus all` để tính cả TikTok/YouTube).
 
-## Tín hiệu được dùng
+## Tín hiệu & trọng số (focus meta-ig)
 
-| Tín hiệu | Lấy ở đâu | Vì sao có giá trị | Trọng số |
+| Nhóm | Tín hiệu | Vì sao có giá trị | Trọng số |
 |---|---|---|---|
-| **Tỉ lệ share** (share/view) | TikTok, IG, FB, YouTube | Người xem gửi cho người khác = angle chạm đúng nỗi đau | 20% |
-| **Tỉ lệ tương tác** (like+comment+share+save)/view | như trên | Mức độ angle giữ được người xem | 15% |
-| **View trung vị / bài** | như trên | Độ phủ, tránh để 1 bài viral kéo cả angle | 15% |
-| **% bình luận muốn mua / hỏi giá, link** | `/angle-lab:comments`, nối theo URL bài | Tín hiệu mua gần nhất có thể quan sát | 15% |
-| **Số creator khác nhau cùng đánh angle** | tên tài khoản đăng bài | Affiliate/UGC tự copy angle = angle bán được | 10% |
-| **Ad chạy lâu nhất** | Ad Library (công khai) | Đối thủ giữ ad lâu = ad ổn | 15% |
-| **Ad active + ad mới 30 ngày** | Ad Library | Đối thủ đang đổ thêm vào angle này | 10% |
-| **% bình luận chê / nghi ngờ** | `/angle-lab:comments` | **Trừ điểm**: tối đa −50% nếu toàn chê | phạt |
+| Meta Ads | Ad active chạy lâu nhất | Không ai giữ ad lỗ nhiều tuần | 15% |
+| Meta Ads | Ad active + ad mới 30 ngày | Đối thủ đang đổ thêm vào angle này | 10% |
+| Meta Ads | Tổng bản nhân ("N ads use this creative") | Nhân bản = đang scale creative đó | 8% |
+| Meta Ads | **Lượt tiếp cận EU** | Tín hiệu công khai gần chi tiêu nhất (chỉ ad phân phối ở EU/UK/Brazil) | 12% |
+| Meta Ads + IG | **Hợp tác creator** (Paid partnership ad / bài) | Đối thủ trả tiền creator = đã tin angle | 5% |
+| Instagram | **View / follower** của Reels | Reel vượt tập follower = angle lan tự nhiên | 12% |
+| Instagram | Tỉ lệ tương tác (like+comment+share+save)/view | Angle giữ được người xem | 10% |
+| Instagram | % bình luận muốn mua / hỏi giá, link | Tín hiệu mua gần nhất quan sát được | 12% |
+| Instagram | Số creator khác nhau cùng đánh angle | UGC/affiliate tự copy = angle bán được | 8% |
+| Instagram | View trung vị (min–max trên thang log) | Độ phủ, không để 1 reel viral kéo cả angle | 5% |
+| Instagram | Share (nếu hiển thị) | Gửi cho người khác = chạm đúng nỗi đau | 3% |
+| Phạt | % bình luận chê / nghi ngờ | Trừ tối đa −50% | — |
 
-Thiếu nguồn nào thì script tự bỏ tín hiệu đó và chia lại trọng số. Cột "Tin cậy" thể hiện dữ liệu dày hay mỏng.
+Thiếu nguồn nào thì script tự bỏ tín hiệu đó và chia lại trọng số; cột "Tin cậy" thể hiện dữ liệu dày hay mỏng.
 
-## 1. Gom bài đăng theo angle → `01-scale/posts.csv`
+## 1. Ad Meta → `01-scale/ads_raw.json` + `angle_map.csv`
 
-Với mỗi angle đã rút ra ở `03-videos/videos.md`, tìm **mọi bài** dùng angle đó, không chỉ của brand:
-- Tài khoản chính của brand trên TikTok / IG / FB / YouTube
-- Video affiliate, TikTok Shop, KOC/UGC đăng cùng sản phẩm (tìm theo tên sản phẩm, hashtag, nhạc/âm thanh của video gốc)
-- Spark ads / bài organic trùng creative với ad trong Ad Library
+- Lấy ad theo `/angle-lab:ad-scale` (HAR / MCP / scraper → `adlib_parse.py`). Đối thủ có bán ở EU/UK thì lấy thêm EU reach.
+- Gán **toàn bộ** ad vào angle: `ad_id,angle,angle_name` (căn cứ ad copy, video, landing; ad cùng creative thì cùng angle; không chắc thì `unclear`).
 
-Lấy số:
+## 2. Bài Instagram → `01-scale/ig/posts.csv`
+
+Thu thập đủ 4 nguồn:
 ```bash
-yt-dlp --skip-download --write-info-json -o "research/<slug>/01-scale/posts/%(extractor)s_%(id)s" <url>
+S="${CLAUDE_PLUGIN_ROOT}/scripts"
+python3 "$S/ig_collect.py" profile <brand_ig> --reels-only --limit 80 --comments 200 --login <user> --out-dir research/<slug>/01-scale/ig
+python3 "$S/ig_collect.py" tagged  <brand_ig> --limit 80 --login <user> --out-dir research/<slug>/01-scale/ig       # UGC / affiliate tag brand
+python3 "$S/ig_collect.py" urls <link reel của creator trong ad hợp tác> … --out-dir research/<slug>/01-scale/ig
+python3 "$S/ig_collect.py" hashtag <hashtag sản phẩm> --limit 60 --login <user> --out-dir research/<slug>/01-scale/ig
 ```
-File `.info.json` có `view_count, like_count, comment_count, repost_count, uploader, channel_follower_count`. Instagram/Facebook thường cần đăng nhập: đọc số hiển thị trên bài (hoặc nhờ người dùng chụp màn hình/export) rồi nhập tay.
-
-Ghi CSV: `angle,angle_name,platform,url,creator,views,likes,comments,shares,saves,followers`.
-- Mỗi bài gán **1 angle**, dựa trên nội dung video (xem hook + nỗi đau), không dựa vào caption.
-- Ghi `url` đầy đủ để nối với bình luận đã tải ở bước comments.
-
-## 2. (Tuỳ chọn) Gán ad Ad Library vào angle → `01-scale/angle_map.csv`
-
-`ad_id,angle,angle_name` cho toàn bộ ad trong `01-scale/ads_raw.json` (theo ad copy, video, landing page; ad cùng creative thì cùng angle; không chắc thì gán `unclear`).
+- Không có instaloader/đăng nhập: nhờ người dùng chạy actor Instagram trên Apify (profile/reels/hashtag) rồi `ig_collect.py import <file>.json`. CSV tự làm cũng được, miễn đủ cột.
+- Các lần chạy **gộp vào cùng posts.csv** và giữ cột angle đã gán.
+- AI gán cột `angle` cho từng bài dựa trên **nội dung video** (hook + nỗi đau), không dựa vào caption.
+- Bình luận IG: `comments.py prep -i instagram:research/<slug>/01-scale/ig/comments/<code>.json …`, gắn nhãn như `/angle-lab:comments` để có % muốn mua / chê theo angle.
 
 ## 3. Chạy
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/angle_scoreboard.py" \
-  --posts research/<slug>/01-scale/posts.csv \
-  --comments-dir research/<slug>/04-comments \
+  --posts research/<slug>/01-scale/ig/posts.csv --comments-dir research/<slug>/04-comments \
   --ads research/<slug>/01-scale/ads_raw.json --angle-map research/<slug>/01-scale/angle_map.csv \
-  --assign 5 --out-md research/<slug>/01-scale/scoreboard.md --out-json research/<slug>/01-scale/scoreboard.json
+  --assign 5 --top 10 --out-md research/<slug>/01-scale/scoreboard.md --out-json research/<slug>/01-scale/scoreboard.json
 ```
-Có thể thêm `--posts <slug>:<file>.info.json` cho từng bài thay vì CSV.
+Xuất ra: bảng điểm angle, **Top 10 ad mạnh nhất trên Meta**, **Top 10 bài Instagram mạnh nhất**, và A1–A5.
 
 ## 4. Diễn giải & chốt A1–A5
 
 Dưới bảng của script, viết thêm:
-- Angle nào **lan nhất** (share cao, nhiều creator), angle nào **ra đơn nhất** (nhiều bình luận muốn mua), và hai nhóm này có trùng nhau không.
-- Angle **bị chê nhiều**: vẫn có thể test, nhưng video phải xử lý objection đó ngay trong script.
-- Angle **viral mà không ai hỏi mua**: cẩn thận, giải trí tốt nhưng chưa chắc bán được.
-- **Khoảng trống:** angle khách nhắc nhiều trong bình luận nhưng chưa ai làm video. Không có điểm vì chưa có bài nào, nhưng có thể dành **1 trong 5 slot** cho nó (sửa `test_code` trong `scoreboard.json` cho khớp).
-- Chốt bảng **A1–A5**: mã · angle · điểm · tín hiệu mạnh nhất · video tham chiếu (bài có share cao nhất của angle đó). Đây là input bắt buộc của `/angle-lab:angle-test`.
+- Angle **đối thủ đổ tiền nhiều nhất** (ad sống lâu, bản nhân, EU reach) so với angle **lan tự nhiên mạnh nhất trên IG** (view/follower, số creator). Trùng nhau thì đó là angle chắc nhất. Lệch nhau: angle IG mạnh mà ad ít có thể là **cơ hội** đối thủ chưa khai thác bằng ads.
+- **Hợp tác creator:** creator nào, angle nào. Đây là gợi ý persona/nhân vật cho bước nhân bản.
+- Angle bị chê nhiều: vẫn test được, nhưng video phải xử lý objection đó.
+- Angle viral mà không ai hỏi mua: giải trí tốt, chưa chắc bán được.
+- **Khoảng trống:** angle khách nhắc nhiều trong bình luận nhưng chưa ai làm video. Có thể dành 1 slot (sửa `test_code` trong `scoreboard.json`).
+- Chốt **A1–A5**: mã · angle · điểm · tín hiệu mạnh nhất · **video tham chiếu** (ưu tiên ad mạnh nhất của angle trong Top ad, không có thì bài IG mạnh nhất). Đây là input bắt buộc của `/angle-lab:angle-test`.
 
-Ngân sách test vẫn **chia đều** 5 angle. Điểm chỉ dùng để *chọn* angle, không dùng để chia tiền.
+Ngân sách test vẫn **chia đều**. Điểm chỉ dùng để *chọn* angle, không dùng để chia tiền.

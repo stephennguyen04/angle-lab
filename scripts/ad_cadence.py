@@ -27,6 +27,16 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from csvio import norm_key, read_csv_rows  # noqa: E402
+
+# Hạng theo số ngày chạy (tham khảo seancrowe01/ads-machine)
+TIERS = [(60, "Long-Runner (≥60 ngày)"), (30, "Performer (30–59)"), (14, "Solid (14–29)"), (7, "Testing (7–13)"), (0, "Mới/đã tắt (<7)")]
+
+
+def tier_of(days: int) -> str:
+    return next(name for lim, name in TIERS if days >= lim)
+
 FIELD_ALIASES = {
     "id": ["id", "ad_id", "library_id", "ad_archive_id", "adarchiveid", "ma_thu_vien"],
     "start_date": ["start_date", "ad_delivery_start_time", "started", "started_running",
@@ -49,14 +59,17 @@ EN_MONTHS = {m: i for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
 
 
-def norm_key(k: str) -> str:
-    k = k.strip().lower()
-    k = re.sub(r"[^a-z0-9]+", "_", k)
-    return k.strip("_")
+_NORM_CACHE: dict[int, tuple[dict, dict]] = {}
 
 
 def pick(row: dict, field: str):
-    keys = {norm_key(k): v for k, v in row.items()}
+    cached = _NORM_CACHE.get(id(row))
+    if cached is None or cached[0] is not row:
+        if len(_NORM_CACHE) > 50000:
+            _NORM_CACHE.clear()
+        cached = (row, {norm_key(k): v for k, v in row.items()})
+        _NORM_CACHE[id(row)] = cached
+    keys = cached[1]
     for alias in FIELD_ALIASES[field]:
         if alias in keys and keys[alias] not in (None, ""):
             return keys[alias]
@@ -162,9 +175,9 @@ def classify_landing(url: str | None, brand_domain: str | None) -> str:
 
 
 def load_rows(path: Path) -> list[dict]:
+    if path.suffix.lower() in (".csv", ".tsv", ".txt"):
+        return read_csv_rows(path)
     text = path.read_text(encoding="utf-8-sig")
-    if path.suffix.lower() == ".csv":
-        return list(csv.DictReader(text.splitlines()))
     if path.suffix.lower() == ".jsonl":
         return [json.loads(l) for l in text.splitlines() if l.strip()]
     data = json.loads(text)
@@ -208,6 +221,11 @@ def analyze(rows: list[dict], as_of: date, brand_domain: str | None, top_n: int)
             "landing_type": classify_landing(pick(r, "landing_url"), brand_domain),
             "video_url": pick(r, "video_url"),
             "body": (str(pick(r, "body") or "")[:180]).replace("\n", " "),
+            "platforms": str(pick(r, "platforms") or "").lower() or None,
+            "eu_reach": parse_int(pick(r, "eu_reach"), 0) or None,
+            "partnership": parse_bool(pick(r, "partnership")) or bool(re.search(r"paid partnership|hợp tác có trả phí", str(pick(r, "body") or ""), re.I)),
+            "page_name": pick(r, "page_name"),
+            "tier": tier_of(days) if active else "đã tắt",
             # Winner score: chạy càng lâu + nhân bản càng nhiều = càng chắc là ad ra tiền
             "winner_score": round(days * (1 + math.log(max(dup, 1))), 1),
         })
@@ -270,6 +288,13 @@ def analyze(rows: list[dict], as_of: date, brand_domain: str | None, top_n: int)
     landing_mix = Counter(a["landing_type"] for a in active_ads or ads)
     landing_urls = Counter((a["landing_url"] or "").split("?")[0] for a in active_ads or ads if a["landing_url"])
 
+    pool = active_ads or ads
+    with_plat = [a for a in pool if a["platforms"]]
+    ig = [a for a in with_plat if "instagram" in a["platforms"]]
+    tiers = Counter(a["tier"] for a in active_ads)
+    reach_ads = [a for a in ads if a["eu_reach"]]
+    pages = Counter(a["page_name"] for a in ads if a["page_name"])
+
     ranked = sorted(ads, key=lambda a: (a["active"], a["winner_score"]), reverse=True)
     top_videos = [a for a in ranked if a["media_type"] == "video"][:top_n]
 
@@ -290,6 +315,13 @@ def analyze(rows: list[dict], as_of: date, brand_domain: str | None, top_n: int)
         "media_mix": dict(media_mix),
         "landing_mix": dict(landing_mix),
         "top_landing_urls": landing_urls.most_common(5),
+        "tiers": dict(tiers),
+        "instagram_placement": {"known": len(with_plat), "instagram": len(ig),
+                                "pct": round(len(ig) / len(with_plat) * 100) if with_plat else None},
+        "eu_reach": {"ads_with_reach": len(reach_ads), "total": sum(a["eu_reach"] for a in reach_ads),
+                     "top": sorted(reach_ads, key=lambda a: -a["eu_reach"])[:5]},
+        "partnership_ads": sum(1 for a in pool if a["partnership"]),
+        "pages": dict(pages.most_common(10)),
         "top_ads": ranked[:15],
         "top_videos": top_videos,
     }
@@ -314,9 +346,19 @@ def to_md(r: dict) -> str:
     for w in r["weekly_launches"]:
         L.append(f"{w['week_start']} → {w['week_end']} | {w['new_ads']:>4} {bar(w['new_ads'], sc)}")
     L.append("```")
-    L.append("\n## Tuổi của ad đang active\n")
-    for k in ["<7 ngày", "7–30 ngày", "31–90 ngày", ">90 ngày"]:
-        L.append(f"- {k}: {r['active_age_buckets'].get(k, 0)}")
+    L.append("\n## Hạng ad đang active theo số ngày chạy\n")
+    for _, name in TIERS:
+        L.append(f"- {name}: {r['tiers'].get(name, 0)}")
+    ig = r["instagram_placement"]
+    L.append("\n## Meta: Instagram · lượt tiếp cận EU · hợp tác creator\n")
+    L.append(f"- Ad có chạy Instagram: " + (f"**{ig['instagram']}/{ig['known']} ({ig['pct']}%)**" if ig["known"] else "_chưa có dữ liệu placement (dùng adlib_parse.py hoặc --platform instagram)_"))
+    er = r["eu_reach"]
+    L.append(f"- Ad có lượt tiếp cận EU: {er['ads_with_reach']}" + (f" · tổng {er['total']:,}" if er["total"] else " (chỉ có với ad phân phối ở EU/UK/Brazil)"))
+    for a in er["top"]:
+        L.append(f"  - `{a['id']}`: {a['eu_reach']:,} tiếp cận · {a['days_running']} ngày · {a['body'][:60]}")
+    L.append(f"- Ad hợp tác creator (Paid partnership): {r['partnership_ads']}")
+    if len(r["pages"]) > 1:
+        L.append(f"- Chạy trên {len(r['pages'])} page: " + ", ".join(f"{k} ({v})" for k, v in r["pages"].items()))
     L.append("\n> Ad active >30 ngày gần như chắc chắn đang có lãi, vì không ai đốt tiền 1 tháng cho ad lỗ.")
     L.append("\n## Media mix\n")
     for k, v in sorted(r["media_mix"].items(), key=lambda x: -x[1]):
@@ -329,11 +371,13 @@ def to_md(r: dict) -> str:
         for u, n in r["top_landing_urls"]:
             L.append(f"- `{u}` ({n} ad)")
     L.append("\n## Ứng viên winner (xếp theo winner score = số ngày chạy × (1 + ln(số bản nhân)))\n")
-    L.append("| # | ID | Active | Bắt đầu | Ngày chạy | Bản nhân | Loại | Score | Text |")
-    L.append("|---|---|---|---|---|---|---|---|---|")
+    L.append("| # | ID | Active | Hạng | Ngày chạy | Bản nhân | Loại | IG | EU reach | Score | Text |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for i, a in enumerate(r["top_ads"], 1):
-        L.append(f"| {i} | {a['id']} | {'✅' if a['active'] else '—'} | {a['start_date']} | {a['days_running']} | "
-                 f"{a['duplicates']} | {a['media_type']} | {a['winner_score']} | {a['body'][:70].replace('|', '/')} |")
+        ig_mark = ("✅" if "instagram" in a["platforms"] else "—") if a["platforms"] else "?"
+        reach = f"{a['eu_reach']:,}" if a["eu_reach"] else "—"
+        L.append(f"| {i} | {a['id']} | {'✅' if a['active'] else '—'} | {a['tier']} | {a['days_running']} | "
+                 f"{a['duplicates']} | {a['media_type']} | {ig_mark} | {reach} | {a['winner_score']} | {a['body'][:60].replace('|', '/')} |")
     L.append("\n## 🎯 5 video top đề xuất để mổ angle\n")
     if not r["top_videos"]:
         L.append("_Không có ad video nào trong dữ liệu._")

@@ -18,7 +18,7 @@ Hai video khác hook, khác format vẫn có thể **cùng 1 angle**. Phân tíc
 
 ## 1. Chuẩn bị từng video
 
-Lấy 5 video từ `01-scale/scale.md` (hoặc link người dùng đưa). Với mỗi video `vN`:
+Lấy 5 video từ **Top ad / Top bài Instagram** trong `01-scale/scoreboard.md` nếu đã có, không thì từ `01-scale/scale.md` (hoặc link người dùng đưa). Reel IG: `ig_collect.py` ghi sẵn `video_url`; link reel cũng đưa thẳng cho `video_prep.sh` được (yt-dlp, có thể cần `--cookies-from-browser`). Với mỗi video `vN`:
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/video_prep.sh" "<video_url hoặc file>" research/<slug>/03-videos/v1
 ```

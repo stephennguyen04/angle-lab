@@ -40,7 +40,7 @@ Bốn mảng độc lập nhau, nên giao cho 4 agent của plugin chạy song s
 
 Mảng **5 video top** phụ thuộc vào danh sách video từ mảng Scale → sau khi `ad-scale-analyst` xong, chạy `angle-lab:video-angle-analyst` (hoặc tự làm theo `/angle-lab:top-videos`) → `03-videos/videos.md`. Có thể chạy song song 5 agent `video-angle-analyst`, mỗi agent 1 video, rồi tự tổng hợp bảng so sánh.
 
-**Bảng điểm angle**: khi đã có Scale + 5 video + Bình luận, chạy `/angle-lab:scoreboard`. Bước này gom mọi bài đăng (brand, affiliate, UGC) theo angle, chấm bằng dữ liệu công khai trên mạng xã hội (share, tương tác, view, số creator, % bình luận muốn mua/chê, Ad Library) → `01-scale/scoreboard.md`, rồi chốt A1–A5. Không ước tính CPC/ROAS của đối thủ.
+**Bảng điểm angle (Meta Ads + Instagram)**: khi đã có Scale + 5 video + Bình luận, chạy `/angle-lab:scoreboard`. Bước này gom ad Meta (bản nhân, EU reach, % Instagram, hợp tác creator) và Reels/bài IG (brand, tagged UGC, creator hợp tác) theo angle → `01-scale/scoreboard.md` gồm bảng điểm angle, Top 10 ad, Top 10 bài IG, rồi chốt A1–A5. Không ước tính CPC/ROAS của đối thủ.
 
 Nếu môi trường không có Agent tool, hãy làm tuần tự theo từng skill con.
 
