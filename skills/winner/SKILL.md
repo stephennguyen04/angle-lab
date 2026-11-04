@@ -12,8 +12,13 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/`. Output: `research/<slug>/creative/02-r
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/test_readout.py" -i <export.csv> --price <giá> --cogs <giá vốn> --shipping <ship> --fees-pct 5 \
+  --scoreboard research/<slug>/01-scale/scoreboard.json \
   --out-md research/<slug>/creative/02-readout.md --out-json research/<slug>/creative/readout.json
 ```
+Bảng **"Dự đoán từ spy vs thực tế"** đặt CPC/ROAS **thật** của từng angle cạnh CPC ước tính / ROAS sàn suy ra lúc spy:
+- Angle proof cao mà mình chạy thua: thường do **thực thi** (hook, dựng, offer/LP), chưa chắc angle sai. Cân nhắc test lại 1 bản dựng tốt hơn trước khi bỏ.
+- Angle thắng **ngoài dự đoán** (nhất là angle khoảng trống): đáng giá nhất vì đối thủ chưa khai thác.
+- CPC thật cao hơn khoảng ước tính: hook 3s yếu hơn bản gốc, xem lại hook rate.
 (hoặc `--breakeven-cpa <số>`; tên ad không theo naming convention thì truyền `--angle-regex`.)
 
 Diễn giải thêm dưới bảng: angle nào thắng, thắng vì đâu (hook rate cao? CTR cao? CVR cao?), angle thua chết ở bước nào trong phễu.

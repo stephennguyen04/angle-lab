@@ -148,6 +148,7 @@ def main():
     ap.add_argument("--min-impr", type=int, default=3000)
     ap.add_argument("--kill-hook", type=float, default=15.0)
     ap.add_argument("--winner-min-purchases", type=int, default=3)
+    ap.add_argument("--scoreboard", help="scoreboard.json từ angle_scoreboard.py để so dự đoán spy với thực tế")
     ap.add_argument("--out-md")
     ap.add_argument("--out-json")
     a = ap.parse_args()
@@ -197,7 +198,9 @@ def main():
     def f(v, suf=""):
         return "—" if v is None else f"{v}{suf}"
 
-    L = [f"# Kết quả test angle\n", f"- CPA hoà vốn (BE): **{be:.2f}** · rule winner: ≥{a.winner_min_purchases} đơn & CPA ≤ BE\n"]
+    be_roas = round(a.price / be, 2) if a.price else None
+    L = [f"# Kết quả test angle\n", f"- CPA hoà vốn (BE): **{be:.2f}**" + (f" · ROAS hoà vốn: **{be_roas}**" if be_roas else "")
+         + f" · rule winner: ≥{a.winner_min_purchases} đơn & CPA ≤ BE\n"]
     L.append("## Theo ANGLE\n")
     L.append("| Angle | Ads | Chi | Hook% | Hold% | CTR% | CPC | ATC | Đơn | CPA | ROAS | Quyết định | Lý do |")
     L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
@@ -210,6 +213,36 @@ def main():
     for x in per_ad:
         L.append(f"| {x['ad']} | {x['angle']} | {x['spend']:.2f} | {f(x['hook_rate'])} | {f(x['hold_rate'])} | {f(x['ctr_link'])} | "
                  f"{int(x['atc'])} | {int(x['purch'])} | {f(x['cpa'])} | **{x['decision']}** |")
+    pred_rows = []
+    if a.scoreboard:
+        sb = {x["test_code"]: x for x in json.loads(Path(a.scoreboard).read_text(encoding="utf-8"))["angles"] if x.get("test_code")}
+        roas_floor_default = json.loads(Path(a.scoreboard).read_text(encoding="utf-8")).get("be_roas")
+        actual_rank = {x["angle"]: i + 1 for i, x in enumerate(angles)}
+        pred_rank = {k: i + 1 for i, k in enumerate(sorted(sb, key=lambda k: -sb[k]["proof_score"]))}
+        L.append("\n## Dự đoán từ spy vs thực tế\n")
+        L.append("| Angle | Tên | Proof (hạng dự đoán) | Hạng thực tế | CPC ước tính | CPC thật | ROAS sàn suy ra | ROAS thật | Nhận xét |")
+        L.append("|---|---|---|---|---|---|---|---|---|")
+        for code, p in sorted(sb.items(), key=lambda kv: pred_rank[kv[0]]):
+            x = next((y for y in angles if y["angle"] == code), None)
+            if not x:
+                L.append(f"| {code} | {p['angle_name']} | {p['proof_score']} (#{pred_rank[code]}) | chưa chạy | | | | | |")
+                continue
+            notes = []
+            ce = p.get("cpc_est")
+            if ce and x["cpc"] is not None:
+                notes.append("CPC tốt hơn dự đoán" if x["cpc"] < ce[0] else "CPC đúng khoảng" if x["cpc"] <= ce[1] else "CPC cao hơn dự đoán: hook/creative của mình yếu hơn bản gốc?")
+            rf = p.get("roas_floor") or roas_floor_default
+            if x["roas"] is not None and rf:
+                notes.append("ROAS ≥ sàn ✅" if x["roas"] >= rf else "ROAS dưới sàn")
+            diff = actual_rank[code] - pred_rank[code]
+            if abs(diff) >= 2:
+                notes.append("bất ngờ: tốt hơn dự đoán" if diff < 0 else "bất ngờ: kém hơn dự đoán")
+            pred_rows.append({"angle": code, "pred_rank": pred_rank[code], "actual_rank": actual_rank[code], "notes": notes})
+            L.append(f"| {code} | {p['angle_name']} | {p['proof_score']} (#{pred_rank[code]}) | #{actual_rank[code]} · {x['decision']} | "
+                     f"{f'{ce[0]}–{ce[1]}' if ce else '—'} | {f(x['cpc'])} | {f'≥ {rf}' if p.get('roas_floor') else '—'} | {f(x['roas'])} | {'; '.join(notes)} |")
+        L.append("\n> Angle đối thủ đã chứng minh mà mình chạy lại thua nhiều → thường do **thực thi** (hook, chất lượng dựng, offer/LP) chứ không phải angle. "
+                 "Angle thắng ngoài dự đoán → đáng giá nhất, vì đối thủ chưa khai thác.")
+
     win = [x for x in angles if x["decision"] == "WINNER"]
     pot = [x for x in angles if x["decision"] == "TIỀM NĂNG"]
     L.append("\n## Kết luận\n")
@@ -228,7 +261,7 @@ def main():
     if a.out_md:
         Path(a.out_md).write_text(md, encoding="utf-8")
     if a.out_json:
-        Path(a.out_json).write_text(json.dumps({"breakeven_cpa": round(be, 2), "angles": angles, "ads": per_ad, "column_map": cols},
+        Path(a.out_json).write_text(json.dumps({"breakeven_cpa": round(be, 2), "breakeven_roas": be_roas, "spy_vs_actual": pred_rows, "angles": angles, "ads": per_ad, "column_map": cols},
                                                ensure_ascii=False, indent=2), encoding="utf-8")
     print(md)
 

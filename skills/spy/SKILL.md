@@ -40,6 +40,8 @@ Bốn mảng độc lập nhau, nên giao cho 4 agent của plugin chạy song s
 
 Mảng **5 video top** phụ thuộc vào danh sách video từ mảng Scale → sau khi `ad-scale-analyst` xong, chạy `angle-lab:video-angle-analyst` (hoặc tự làm theo `/angle-lab:top-videos`) → `03-videos/videos.md`. Có thể chạy song song 5 agent `video-angle-analyst`, mỗi agent 1 video, rồi tự tổng hợp bảng so sánh.
 
+**Bảng điểm angle (CPC / ROAS từng angle)**: khi đã có Scale + 5 video + Funnel (lấy AOV), chạy `/angle-lab:scoreboard`: gán toàn bộ ad đối thủ vào angle, tính proof score, CPC ước tính, ROAS sàn suy ra → `01-scale/scoreboard.md`, rồi chốt A1–A5 kèm KPI kỳ vọng. Hỏi người dùng giá vốn, ship và CPC chuẩn (hoặc lấy từ tài khoản Meta của họ) nếu chưa có.
+
 Nếu môi trường không có Agent tool, hãy làm tuần tự theo từng skill con.
 
 **Mảng bình luận là quan trọng nhất**, đừng làm qua loa: phải đọc thật nhiều bình luận trên MỌI nền tảng họ bán, không chỉ vài cái đầu.
@@ -55,7 +57,8 @@ Nếu môi trường không có Agent tool, hãy làm tuần tự theo từng sk
 5. **Tiếng nói khách hàng:** nền tảng nào, tỉ lệ khen/chê/hỏi, top chê (rủi ro), top hỏi (FAQ/objection), top khen (đạn cho creative). Mức rủi ro 🔴🟡🟢.
 6. **Rủi ro sản phẩm** (từ bình luận + funnel + policy): hàng lỗi, ship lâu, claim y tế/sức khoẻ dễ bị Meta reject, IP/trademark.
 7. **Cơ hội làm tốt hơn đối thủ:** mỗi điểm chê là một cơ hội (sản phẩm, offer, PDP, CSKH, creative). Ghi cụ thể: làm gì, ở đâu.
-8. **Đề xuất 5 angle để test** → chuyển sang `/angle-lab:angle-test`.
+8. **Bảng điểm angle**: mỗi angle của đối thủ có proof score, số ad / ad mới / độ bền, CPC ước tính, ROAS sàn suy ra, độ tin cậy. Ghi rõ đây là **suy ra / ước tính**, không phải số thật của đối thủ.
+9. **A1–A5 để test** (từ scoreboard) kèm CPC kỳ vọng và ROAS mục tiêu → chuyển sang `/angle-lab:angle-test`.
 
 Mọi con số phải dẫn nguồn (file trong workspace). Phần nào thiếu dữ liệu thì ghi rõ "chưa có dữ liệu + cách lấy", không bịa.
 

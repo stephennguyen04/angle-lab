@@ -39,6 +39,20 @@ python3 $S/variant_matrix.py --angle fixtures/angle.json --mode staged --round 1
 test "$(tail -n +2 $T/v1.csv | wc -l)" -eq 4
 pass "variant_matrix.py"
 
+python3 $S/angle_scoreboard.py --ads fixtures/ads.json --angle-map fixtures/angle_map.csv --posts fixtures/posts.csv \
+  --spy-tool fixtures/spy_tool.csv --aov 49.99 --cogs 10 --shipping 4 --fees-pct 5 --bench-cpc 0.9 --as-of 2026-11-04 --out-json $T/sb.json >/dev/null
+python3 - $T/sb.json <<'PY'
+import json,sys; d=json.load(open(sys.argv[1])); a=d["angles"]
+assert d["be_roas"]==1.49 and a[0]["angle"]=="dau-lung-van-phong" and a[0]["test_code"]=="A1"
+assert sum(1 for x in a if x["test_code"])==5 and a[0]["cpc_source"]=="tool spy"
+assert next(x for x in a if x["angle"]=="tre-em")["confidence"]=="TB"
+PY
+python3 $S/test_readout.py -i fixtures/meta_export.csv --price 49.99 --cogs 10 --shipping 4 --fees-pct 5 --scoreboard $T/sb.json --out-json $T/r2.json >/dev/null
+python3 -c "
+import json;d=json.load(open('$T/r2.json'));assert d['breakeven_roas']==1.49 and len(d['spy_vs_actual'])==5
+assert any('tốt hơn dự đoán' in n for r in d['spy_vs_actual'] for n in r['notes'])"
+pass "angle_scoreboard.py + test_readout --scoreboard"
+
 bash -n $S/video_prep.sh && node --check $S/capture_page.cjs && node --check $S/adlib_scrape.cjs && python3 -m py_compile $S/shopify_product.py
 pass "syntax video_prep.sh / capture_page.cjs / adlib_scrape.cjs / shopify_product.py"
 echo "Tất cả test đều pass."
