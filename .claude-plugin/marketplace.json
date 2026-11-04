@@ -1,0 +1,17 @@
+{
+  "name": "angle-lab",
+  "owner": {
+    "name": "dangkhoi"
+  },
+  "metadata": {
+    "description": "Marketplace cho plugin angle-lab: spy sản phẩm đối thủ và quy trình test angle / nhân bản creative."
+  },
+  "plugins": [
+    {
+      "name": "angle-lab",
+      "source": "./",
+      "description": "Spy đối thủ (scale ads, funnel, bundle, top 5 video, bình luận đa nền tảng) rồi chạy quy trình creative: TEST ANGLE TRƯỚC, NHÂN BẢN SAU.",
+      "version": "0.1.0"
+    }
+  ]
+}
