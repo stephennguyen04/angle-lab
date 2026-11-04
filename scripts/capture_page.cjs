@@ -6,7 +6,9 @@
  *   --follow-cta : nếu trang đầu là advertorial/listicle, tự click CTA chính để chụp tiếp trang sản phẩm (bước 2 funnel)
  *
  * Output trong out_dir:
- *   step1.png / step1.json / step1.txt  (và step2.* nếu follow CTA)
+ *   step1_summary.md  : ĐỌC FILE NÀY TRƯỚC (gọn): loại trang, heading, CTA, giá, dấu hiệu, app, 250 chữ đầu
+ *   step1_fold.png    : màn hình đầu tiên (above the fold) · step1_bundle.png: khu bundle/offer (nếu tìm thấy)
+ *   step1.png / step1.json / step1.txt : toàn trang, chỉ mở khi cần  (và step2.* nếu follow CTA)
  *   funnel.json: chuỗi redirect + page_type từng bước
  */
 const fs = require('fs');
@@ -71,12 +73,47 @@ async function analyze(page) {
   });
 }
 
+function summaryMd(step, info) {
+  // Bản tóm tắt gọn (~1–2K token) để AI đọc trước, thay vì text đầy đủ (tới 60K ký tự) + ảnh toàn trang
+  const on = Object.entries(info.markers).filter(([k, v]) => v && k !== 'video_count').map(([k]) => k);
+  const words = info.text.split(/\s+/).filter(Boolean);
+  return [
+    `# ${step}: ${info.page_type} · ${info.words} chữ`,
+    `URL: ${info.url}`, `Title: ${info.title}`,
+    `Dấu hiệu: ${on.join(', ') || '—'} · video: ${info.markers.video_count}`, `App: ${info.apps.join(', ') || '—'}`,
+    `Giá thấy trên trang: ${info.prices.slice(0, 12).join(' · ') || '—'}`,
+    '', '## Heading (theo thứ tự)', ...info.headings.slice(0, 30).map(h => `- ${h.tag}: ${h.text}`),
+    '', '## CTA', ...info.ctas.slice(0, 10).map(c => `- ${c.text}${c.href ? ' → ' + c.href.split('?')[0] : ''}`),
+    '', '## 250 chữ đầu', words.slice(0, 250).join(' '),
+    '', `_Đầy đủ: ${step}.txt (text) · ${step}.png (toàn trang) · ${step}_fold.png (màn hình đầu) · ${step}_bundle.png (khu bundle, nếu có)_`,
+  ].join('\n');
+}
+
 async function capture(page, step) {
+  await page.screenshot({ path: path.join(outDir, `${step}_fold.png`) }).catch(() => {});   // màn hình đầu tiên
   for (let i = 0; i < 25; i++) { await page.mouse.wheel(0, 1200); await page.waitForTimeout(250); }
   await page.waitForTimeout(1200);
   const info = await analyze(page);
   await page.screenshot({ path: path.join(outDir, `${step}.png`), fullPage: true }).catch(() => {});
+  // Ảnh riêng khu bundle/offer: tìm phần tử nhỏ nhất chứa chữ kiểu "Buy 2", "2 Pack", "Mua 2", "Most popular"
+  try {
+    const box = await page.evaluate(() => {
+      const re = /(buy\s*\d|\d\s*(pack|pcs|bottles?|hộp|chai|bộ)\b|mua\s*\d|most popular|best value|phổ biến nhất|bundle)/i;
+      let best = null;
+      for (const el of document.querySelectorAll('div,section,form,ul,fieldset')) {
+        const t = el.innerText || '';
+        if (!re.test(t)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.height < 80 || r.width < 200 || r.height > 1600) continue;
+        if (!best || r.height * r.width < best.area) best = { x: r.x + scrollX, y: r.y + scrollY, w: r.width, h: r.height, area: r.width * r.height };
+      }
+      return best;
+    });
+    if (box) await page.screenshot({ path: path.join(outDir, `${step}_bundle.png`), fullPage: true,
+      clip: { x: Math.max(0, box.x - 8), y: Math.max(0, box.y - 40), width: box.w + 16, height: Math.min(box.h + 120, 1800) } });
+  } catch (e) {}
   fs.writeFileSync(path.join(outDir, `${step}.txt`), info.text);
+  fs.writeFileSync(path.join(outDir, `${step}_summary.md`), summaryMd(step, info));
   delete info.text;
   fs.writeFileSync(path.join(outDir, `${step}.json`), JSON.stringify(info, null, 2));
   return info;

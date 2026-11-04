@@ -1,0 +1,6 @@
+HOOK 0–3s: Freeship toàn quoc - Doi tra 30 ngày / Ngồi 8 tiếng mỗi ngày? / Lưng bạn đang kêu cứu
+[0.0–10.0] Freeship toàn quoc - Doi tra 30 ngày
+[0.2–2.2] Ngồi 8 tiếng mỗi ngày?
+[2.0–4.0] Lưng bạn đang kêu cứu
+[4.0–6.5] Không phải do ghế!
+[6.5–9.0] Giảm 50% hôm nay

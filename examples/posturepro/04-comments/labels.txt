@@ -1,0 +1,13 @@
+c00013 C siz 1 b chật, phải lấy lên 1 size
+c00011 C saf 3 b kích ứng da vai
+c00012 P qua 0 b
+c00001 Q pri - -
+c00002 P eff 0 b đeo 1 tuần đỡ đau
+c00003 C shi,scam 3 b 3 tuần chưa nhận
+c00010 S pri,comp,scam 1 n thấy trên Temu giá $5
+c00004 C shi,scam 3 b 3 tuần chưa nhận, nghi scam
+c00005 P eff 0 b hết đau lưng sau 1 tuần
+c00009 C dur,qua 2 b gãy sau 2 ngày, nhựa rẻ
+c00008 Q eff - - hỏi dùng cho vẹo cột sống được không
+c00006 Q pri - -
+c00007 T oth - -

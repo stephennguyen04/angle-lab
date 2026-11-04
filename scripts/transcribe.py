@@ -156,7 +156,7 @@ def main():
     print(f"Ngôn ngữ: {res['language']} · dài {res['duration']}s · engine {res['engine']}")
     print(f"HOOK 0–{a.hook_seconds:g}s (lời): {res.get('hook_0_3s') or '(chưa nói gì)'} · từ đầu tiên ở {res.get('first_word_at')}s · "
           f"{res.get('words_per_sec')} từ/giây")
-    for s in res["segments"][:15]:
+    for s in res["segments"][:6]:
         print(f"[{s['start']:>6.2f}] {s['text']}")
     if res.get("low_confidence_words"):
         print(f"⚠️ {len(res['low_confidence_words'])} từ độ tin cậy thấp, nên nghe lại: "

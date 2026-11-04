@@ -22,7 +22,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from csvio import read_csv_rows  # noqa: E402
+from csvio import brief, read_csv_rows  # noqa: E402
 
 AGE_ORDER = ["13-17", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"]
 G_VI = {"female": "Nữ", "male": "Nam", "unknown": "Không rõ"}
@@ -161,7 +161,7 @@ def main():
     if a.out_json:
         Path(a.out_json).write_text(json.dumps({"angles": angles, "ads": per_ad, "ads_without_breakdown": no_bd},
                                                ensure_ascii=False, indent=1), encoding="utf-8")
-    print(md)
+    print(brief(md, a.out_md, 7 + len(angles)))
 
 
 if __name__ == "__main__":

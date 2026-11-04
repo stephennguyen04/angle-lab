@@ -1,0 +1,52 @@
+{
+  "url": "http://127.0.0.1:8765/products/pdp.html",
+  "title": "",
+  "words": 47,
+  "headings": [
+    {
+      "tag": "H1",
+      "text": "PosturePro"
+    },
+    {
+      "tag": "H3",
+      "text": "Chá»n gÃ³i"
+    },
+    {
+      "tag": "H2",
+      "text": "How it works"
+    },
+    {
+      "tag": "H2",
+      "text": "FAQ"
+    }
+  ],
+  "ctas": [
+    {
+      "text": "Add to cart",
+      "href": null
+    }
+  ],
+  "cta_targets": {},
+  "prices": [
+    "$49.99",
+    "$79.99",
+    "$99.99"
+  ],
+  "markers": {
+    "add_to_cart_form": true,
+    "byline_or_date": false,
+    "advertorial_label": false,
+    "numbered_reasons": 0,
+    "fake_comments": false,
+    "quiz": false,
+    "countdown": false,
+    "bundle_offer": true,
+    "guarantee": true,
+    "reviews": false,
+    "free_shipping": true,
+    "bnpl": false,
+    "video_count": 0
+  },
+  "page_type": "PDP",
+  "apps": []
+}

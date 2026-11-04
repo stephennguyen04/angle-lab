@@ -1,0 +1,16 @@
+# id	like	×trùng	gợi_ý	nội_dung  |  NHÃN (1 dòng/id): id LOẠI chủ_đề sev mua [ghi chú]
+# LOẠI P=khen C=chê Q=hỏi I=muốn mua S=nghi ngờ T=tag bạn O=khác · chủ đề: eff,qua,pri,shi,siz,use,saf,scam,sup,des,sme,dur,comp,pack,oth · sev 0-3 (chê/nghi ngờ) · mua b=đã mua n=chưa -=không rõ
+# vd: c00012 C shi,scam 3 b 3 tuần chưa nhận hàng
+c00013	22	1	-|siz	★3 Runs small, order a size up
+c00011	15	1	-|saf	★1 Gave me a rash on my shoulders
+c00012	9	1	P	★5 Great posture reminder, comfy
+c00001	40	1	Q	Link mua ở đâu vậy shop?
+c00002	22	1	-	Mua rồi đeo 1 tuần đỡ hẳn
+c00003	15	1	Q,C|shi,scam	Ship 3 tuần chưa tới, lừa à?
+c00010	200	1	S|pri,scam,comp	this is on temu for $5 lol
+c00004	120	1	Q,I,C,S|scam	Ordered 3 weeks ago and still nothing. Scam?
+c00005	80	1	P|eff	This actually works, my back pain is gone after a week
+c00009	60	1	C|pri,qua,dur	Broke after 2 days, cheap plastic
+c00008	44	1	Q|eff	does it work for scoliosis?
+c00006	30	1	Q	how much is it?
+c00007	2	1	T	@friend1

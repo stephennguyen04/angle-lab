@@ -1,0 +1,19 @@
+{
+  "entry_url": "http://127.0.0.1:8765/products/pdp.html",
+  "redirect_chain": [
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:8765/products/pdp.html"
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "url": "http://127.0.0.1:8765/products/pdp.html",
+      "page_type": "PDP",
+      "words": 47,
+      "apps": []
+    }
+  ],
+  "funnel_shape": "PDP"
+}

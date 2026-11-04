@@ -58,3 +58,12 @@ def parse_count(v):
     if not m or m[0].startswith("-"):
         return None
     return int(float(m[0].replace(",", ".")))
+
+
+def brief(md: str, out_md: str | None, keep: int) -> str:
+    """Có --out-md thì chỉ in phần đầu (đỡ tốn token khi AI đọc output); bản đầy đủ nằm trong file."""
+    if not out_md:
+        return md
+    lines = md.rstrip().splitlines()
+    head = "\n".join(lines[:keep])
+    return head + (f"\n… (+{len(lines) - keep} dòng) → đầy đủ: {out_md}" if len(lines) > keep else f"\n→ {out_md}")

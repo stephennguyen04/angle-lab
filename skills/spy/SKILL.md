@@ -1,74 +1,33 @@
 ---
 name: spy
-description: Spy toàn diện 1 sản phẩm / đối thủ e-commerce. Đo mức scale ads (bao nhiêu ad active, ra ad mới đều không), mổ product page + bundle + funnel (thẳng PDP hay qua advertorial), lấy 5 video top phân tích angle/nỗi đau/hook 3s đầu, check họ bán trên những nền tảng nào và đọc bình luận từng nền tảng (khen/chê/hỏi → rủi ro sản phẩm & điểm để làm tốt hơn). Dùng khi người dùng nói "spy sản phẩm này", "phân tích đối thủ", "research product", "soi shop này", "mổ đối thủ", dán link sản phẩm/shop/Ad Library và muốn biết có nên làm không.
-argument-hint: "<link sản phẩm | link shop | link Ad Library | tên brand>"
+description: Spy toàn diện 1 sản phẩm đối thủ (scale ads, funnel/bundle, 5 video top, bình luận đa nền tảng) → REPORT.md + verdict LÀM/BỎ. Dùng khi "spy sản phẩm", "phân tích đối thủ", dán link shop/sản phẩm/Ad Library.
+argument-hint: "<link sản phẩm | shop | Ad Library | brand>"
 ---
 
-# /angle-lab:spy: Spy toàn diện 1 sản phẩm
+# /angle-lab:spy
 
-Mục tiêu cuối: trả lời **"Có nên làm sản phẩm này không, và nếu làm thì đánh angle nào, làm tốt hơn đối thủ ở đâu?"**, dựa trên bằng chứng chứ không phải cảm giác.
+Mục tiêu: **có nên làm sản phẩm này không, đánh angle nào, làm tốt hơn đối thủ ở đâu**, bằng bằng chứng.
 
-## 0. Định vị script
+Script: `${CLAUDE_PLUGIN_ROOT}/scripts/` (luôn ghi đường dẫn đầy đủ; mỗi lệnh Bash là shell mới). Chưa có link đối thủ thì chạy `/angle-lab:discover` trước.
 
-Script của plugin nằm ở `${CLAUDE_PLUGIN_ROOT}/scripts/` (mọi skill con đều gọi theo đường dẫn này). Nếu đường dẫn không tồn tại (chạy ngoài plugin), tìm bằng
-`find ~/.claude -path '*angle-lab*/scripts/ad_cadence.py' 2>/dev/null | head -1` rồi dùng thư mục đó thay thế. Mỗi lệnh Bash là shell mới, nên luôn ghi đường dẫn đầy đủ.
+**Tiết kiệm token (áp dụng cho mọi bước):** đọc output tóm tắt của script và các file `*_summary.md`, `hook_sheet.jpg`, `scenes_sheet.jpg`, `report.md`. Không `cat`/Read file JSON, HAR, `.txt` lớn. Chỉ mở khung hình lẻ hoặc ảnh toàn trang khi cần kiểm tra một chi tiết.
 
-Chưa có link đối thủ, chỉ có ngách/sản phẩm? Chạy `/angle-lab:discover` trước để tìm và chọn page đáng spy.
+## 1. Hồ sơ
+Xác định link PDP, domain, Page ID (`view_all_page_id=`), thị trường (ISO-2). Thiếu gì không tự tìm được thì hỏi. Workspace `research/<slug>/` gồm `00-input.md 01-scale/ 02-funnel/ 03-videos/ 04-comments/ creative/`. Đã có workspace thì chỉ làm phần còn thiếu.
 
-## 1. Lập hồ sơ & workspace
+## 2. Phân tích (song song)
+Gửi 3 agent trong 1 message, mỗi agent nhận hồ sơ + đường dẫn workspace:
+- `angle-lab:ad-scale-analyst` → `01-scale/scale.md` + 5 video top
+- `angle-lab:funnel-analyst` → `02-funnel/funnel.md`
+- `angle-lab:comment-miner` → `04-comments/insights.md` (**phần quan trọng nhất**: đọc mọi bình luận trên mọi nền tảng)
 
-Từ input `$ARGUMENTS`, xác định (hỏi người dùng nếu thiếu thứ không tự tìm được):
-- **Link sản phẩm** (PDP) và **domain shop**
-- **Brand / tên Page Facebook** và **Page ID** (lấy trong Ad Library: `view_all_page_id=`; hoặc tìm theo tên brand)
-- **Thị trường** (country code ISO-2 cho Ad Library, ví dụ US, AU, VN)
+Sau khi có 5 video top: 5 agent `angle-lab:video-angle-analyst` song song → `03-videos/videos.md`. Rồi chạy `/angle-lab:scoreboard` (Meta Ads + Instagram → Top ad, Top bài, A1–A5). Không có Agent tool thì làm tuần tự theo từng skill.
 
-Tạo workspace `research/<product-slug>/` (slug ngắn, không dấu) và ghi `00-input.md`:
-```
-research/<slug>/
-  00-input.md      01-scale/     02-funnel/     03-videos/     04-comments/
-  REPORT.md        creative/     (creative/ dùng cho giai đoạn test angle → nhân bản)
-```
-Nếu workspace đã tồn tại → đọc lại các phần đã làm, chỉ làm tiếp phần còn thiếu, không ghi đè dữ liệu cũ (thêm hậu tố ngày nếu chạy lại).
-
-## 2. Chạy 4 mảng phân tích, SONG SONG
-
-Bốn mảng độc lập nhau, nên giao cho 4 agent của plugin chạy song song (một message, 4 lần gọi Agent), mỗi agent nhận đủ hồ sơ ở bước 1 + đường dẫn workspace + đường dẫn thư mục script:
-
-| Mảng | Agent | Skill chi tiết | Output |
-|---|---|---|---|
-| Scale ads | `angle-lab:ad-scale-analyst` | `/angle-lab:ad-scale` | `01-scale/scale.md` + danh sách 5 video top |
-| Product page / bundle / funnel | `angle-lab:funnel-analyst` | `/angle-lab:funnel` | `02-funnel/funnel.md` |
-| Đa nền tảng + bình luận | `angle-lab:comment-miner` | `/angle-lab:comments` | `04-comments/insights.md` |
-
-Mảng **5 video top** phụ thuộc vào danh sách video từ mảng Scale → sau khi `ad-scale-analyst` xong, chạy `angle-lab:video-angle-analyst` (hoặc tự làm theo `/angle-lab:top-videos`) → `03-videos/videos.md`. Có thể chạy song song 5 agent `video-angle-analyst`, mỗi agent 1 video, rồi tự tổng hợp bảng so sánh.
-
-**Bảng điểm angle (Meta Ads + Instagram)**: khi đã có Scale + 5 video + Bình luận, chạy `/angle-lab:scoreboard`. Bước này gom ad Meta (bản nhân, EU reach, % Instagram, hợp tác creator) và Reels/bài IG (brand, tagged UGC, creator hợp tác) theo angle → `01-scale/scoreboard.md` gồm bảng điểm angle, Top 10 ad, Top 10 bài IG, rồi chốt A1–A5. Không ước tính CPC/ROAS của đối thủ.
-
-Nếu môi trường không có Agent tool, hãy làm tuần tự theo từng skill con.
-
-**Mảng bình luận là quan trọng nhất**, đừng làm qua loa: phải đọc thật nhiều bình luận trên MỌI nền tảng họ bán, không chỉ vài cái đầu.
-
-## 3. Tổng hợp REPORT.md
-
-Đọc 4 file output và viết `research/<slug>/REPORT.md` theo `${CLAUDE_PLUGIN_ROOT}/templates/spy-report.md`. Bắt buộc có:
-
-1. **Verdict 1 dòng:** LÀM / LÀM CÓ ĐIỀU KIỆN / BỎ, kèm 3 lý do chính.
-2. **Scale:** số ad active, ad mới 7/14/30 ngày, nhịp ra ad, ad sống lâu nhất. Kết luận: sản phẩm đang lên, đang đỉnh hay đang chết.
-3. **Funnel & offer:** sơ đồ funnel (ad → advertorial? → PDP → upsell), giá, bundle bậc thang, giá/đơn vị, guarantee, điểm yếu của PDP.
-4. **5 angle của đối thủ:** bảng (nỗi đau, persona, hook 3s, kiểu hook, format, bằng chứng), đánh dấu angle họ nhân bản nhiều nhất = angle đã được thị trường xác nhận.
-5. **Tiếng nói khách hàng:** nền tảng nào, tỉ lệ khen/chê/hỏi, top chê (rủi ro), top hỏi (FAQ/objection), top khen (đạn cho creative). Mức rủi ro 🔴🟡🟢.
-6. **Rủi ro sản phẩm** (từ bình luận + funnel + policy): hàng lỗi, ship lâu, claim y tế/sức khoẻ dễ bị Meta reject, IP/trademark.
-7. **Cơ hội làm tốt hơn đối thủ:** mỗi điểm chê là một cơ hội (sản phẩm, offer, PDP, CSKH, creative). Ghi cụ thể: làm gì, ở đâu.
-8. **Bảng điểm angle** (dữ liệu mạng xã hội): mỗi angle có điểm, số bài và creator, view trung vị, tỉ lệ tương tác và share, % bình luận muốn mua và chê, ad active, độ tin cậy.
-9. **A1–A5 để test** (từ scoreboard) kèm tín hiệu mạnh nhất và video tham chiếu → chuyển sang `/angle-lab:angle-test`.
-
-Mọi con số phải dẫn nguồn (file trong workspace). Phần nào thiếu dữ liệu thì ghi rõ "chưa có dữ liệu + cách lấy", không bịa.
+## 3. REPORT.md
+Viết theo `${CLAUDE_PLUGIN_ROOT}/templates/spy-report.md`: verdict + 3 lý do · scale · funnel/offer · 5 angle (angle nhân bản nhiều nhất = đã được thị trường xác nhận) · tiếng nói khách hàng (rủi ro 🔴🟡🟢) · rủi ro · làm tốt hơn ở đâu · bảng mạnh nhất Meta/IG · A1–A5. Mỗi số liệu ghi file nguồn; thiếu dữ liệu thì ghi "chưa có + cách lấy".
 
 ## 4. Kết thúc
-
-Trước khi kết thúc:
-- Đối thủ có bán ở EU/UK → chạy `/angle-lab:audience` để có persona thực tế cho từng angle (đưa vào REPORT mục 7).
-- Gom hook đã mổ vào thư viện: `hooks_library.py harvest --root research --niche "<ngách>"`.
-- Gợi ý người dùng bật `/angle-lab:monitor` để theo dõi đối thủ này hằng ngày.
-
-Trả lời người dùng: verdict, 5 phát hiện đáng giá nhất, đường dẫn REPORT.md, và bước tiếp theo: `/angle-lab:angle-test research/<slug>`.
+- Đối thủ bán ở EU/UK → `/angle-lab:audience` (persona thực tế).
+- `hooks_library.py harvest --root research --niche "<ngách>"`.
+- Gợi ý bật `/angle-lab:monitor`.
+- Trả lời: verdict, 5 phát hiện chính, đường dẫn REPORT.md, bước tiếp `/angle-lab:angle-test research/<slug>`.

@@ -1,0 +1,73 @@
+{
+ "angle_id": "A1",
+ "angle_name": "dau-lung-van-phong",
+ "angle_statement": "Dân văn phòng 25–44 đau lưng dưới mỗi cuối ngày vì tư thế sai chứ không phải ghế; PosturePro sửa tư thế thụ động nên đỡ đau sau 7 ngày, xem demo đeo vào là thấy.",
+ "invariants": [
+  "Persona: dân văn phòng 25–44, ngồi >8h",
+  "Nỗi đau: đau lưng dưới cuối ngày",
+  "Cơ chế: sửa tư thế thụ động, không cần tập",
+  "Lời hứa: đỡ đau sau 7 ngày",
+  "Proof: demo đeo vào + cận cảnh tư thế",
+  "Beat: hook nỗi đau → cách cũ thất bại → cơ chế → demo → offer"
+ ],
+ "drift_red_flags": [
+  "chuyển sang nỗi đau cổ/vai",
+  "đổi persona sang học sinh",
+  "thêm lợi ích 'dáng đẹp' làm loãng"
+ ],
+ "control": {
+  "hook": "H0",
+  "character": "C0",
+  "setting": "S0"
+ },
+ "hooks": [
+  {
+   "id": "H0",
+   "type": "callout nỗi đau",
+   "text": "Ngồi 8 tiếng mỗi ngày? Lưng bạn đang kêu cứu"
+  },
+  {
+   "id": "H1",
+   "type": "kết quả trước",
+   "text": "7 ngày đeo, hết đau lưng cuối ngày"
+  },
+  {
+   "id": "H2",
+   "type": "phá niềm tin",
+   "text": "Đổi ghế 5 triệu vẫn đau lưng? Lỗi không ở ghế"
+  },
+  {
+   "id": "H3",
+   "type": "POV",
+   "text": "POV: 5 giờ chiều, lưng bạn bắt đầu 'đình công'"
+  }
+ ],
+ "characters": [
+  {
+   "id": "C0",
+   "desc": "Nữ 35–44, nhân viên văn phòng (persona lớn nhất)"
+  },
+  {
+   "id": "C1",
+   "desc": "Nữ 25–34, kế toán"
+  },
+  {
+   "id": "C2",
+   "desc": "Nam 35–44, lập trình viên"
+  }
+ ],
+ "settings": [
+  {
+   "id": "S0",
+   "desc": "Bàn làm việc văn phòng, cuối ngày"
+  },
+  {
+   "id": "S1",
+   "desc": "Góc làm việc tại nhà"
+  },
+  {
+   "id": "S2",
+   "desc": "Ghế xe hơi khi kẹt xe"
+  }
+ ]
+}

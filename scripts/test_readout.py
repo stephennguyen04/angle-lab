@@ -29,7 +29,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from csvio import read_csv_rows  # noqa: E402
+from csvio import brief, read_csv_rows  # noqa: E402
 
 ALIASES = {
     "name": ["ad name", "tên quảng cáo", "ad_name", "creative name", "tên ad"],
@@ -268,7 +268,7 @@ def main():
     if a.out_json:
         Path(a.out_json).write_text(json.dumps({"breakeven_cpa": round(be, 2), "breakeven_roas": be_roas, "spy_vs_actual": pred_rows, "angles": angles, "ads": per_ad, "column_map": cols},
                                                ensure_ascii=False, indent=2), encoding="utf-8")
-    print(md)
+    print(brief(md, a.out_md, 7 + len(angles)) + ("\n" + "\n".join(l for l in md.splitlines() if l.startswith(("🏆", "⏳", "❌"))) if a.out_md else ""))
 
 
 if __name__ == "__main__":

@@ -25,7 +25,18 @@ with open(d+"/labels.jsonl","w") as f:
 PY
 python3 $S/comments.py report --out-dir $T/c >/dev/null
 python3 -c "import json;d=json.load(open('$T/c/report.json'));assert d['severity3_count']==2 and d['risk_level'].startswith('🔴'),d"
-pass "comments.py prep/report"
+pass "comments.py prep/report (nhãn JSON cũ)"
+
+# Định dạng gọn: gộp bản gần trùng + batch TSV + nhãn mã ngắn
+printf 'text,likes\nLink mua ở đâu vậy shop?,5\nlink mua o dau vay shop 😍,2\n@ban Link mua ở đâu vậy shop??,1\nShip 3 tuần chưa tới,40\n' > $T/near.csv
+python3 $S/comments.py prep --out-dir $T/cg -i facebook:$T/near.csv >/dev/null
+test "$(grep -vc '^#' $T/cg/batches/batch_001.tsv)" -eq 2
+ids=$(grep -v '^#' $T/cg/batches/batch_001.tsv | cut -f1)
+q=$(grep -v '^#' $T/cg/batches/batch_001.tsv | grep -i link | cut -f1); c=$(grep -v '^#' $T/cg/batches/batch_001.tsv | grep -i ship | cut -f1)
+printf '%s Q pri - -\n%s C shi,scam 3 b 3 tuần chưa nhận\n' $q $c > $T/cg/labels.txt
+python3 $S/comments.py report --out-dir $T/cg >/dev/null
+python3 -c "import json;d=json.load(open('$T/cg/report.json'));assert d['labeled']==4 and d['type_share']['question']==0.75 and d['severity3_count']==1,d"
+pass "comments.py gọn (gộp 3 bản gần trùng → 1 nhãn, batch TSV, nhãn mã ngắn)"
 
 python3 $S/test_readout.py -i fixtures/meta_export.csv --price 49.99 --cogs 10 --shipping 4 --fees-pct 5 --out-json $T/r.json >/dev/null
 python3 -c "
@@ -93,7 +104,12 @@ assert "chuyen-gia" not in a, "ad chỉ chạy Audience Network phải bị lo�
 assert a["dau-lung-van-phong"]["eu_reach_total"]==2270000 and a["dau-lung-van-phong"]["partnership_ads"]==1
 assert d["top_ads"][0]["id"]=="9001" and d["top_posts"][0]["url"].endswith("AAA2/")
 PY
-pass "angle_scoreboard.py --focus meta-ig (top ad, top bài IG)"
+# bảng điểm đọc được nhãn mã ngắn (labels.txt) của bình luận IG
+python3 $S/comments.py prep --out-dir $T/igc -i instagram:$T/ig/comments/AAA1.json >/dev/null
+for id in $(grep -v '^#' $T/igc/batches/batch_001.tsv | cut -f1); do echo "$id C shi 2 b"; done > $T/igc/labels.txt
+python3 $S/angle_scoreboard.py --posts $T/ig/posts.csv --comments-dir $T/igc --ads $T/ads.json --angle-map $T/amap.csv --as-of 2026-11-04 --out-json $T/sb3.json >/dev/null
+python3 -c "import json;a={x['angle']:x for x in json.load(open('$T/sb3.json'))['angles']};assert a['dau-lung-van-phong']['comments_labeled']==3 and a['dau-lung-van-phong']['negative_pct']==100.0"
+pass "angle_scoreboard.py --focus meta-ig (top ad, top bài IG, đọc nhãn mã ngắn)"
 
 # ---- Apify (server giả lập) ----
 freeport() { python3 -c "import socket;s=socket.socket();s.bind(('127.0.0.1',0));print(s.getsockname()[1]);s.close()"; }
@@ -179,6 +195,13 @@ assert open(sys.argv[1]+"/transcript.srt").read().count("-->") >= 2
 PY
   pass "transcribe.py (tiếng Việt có dấu, mốc thời gian, hook 3s, srt)"
 else echo "⏭  bỏ qua nghe → chữ (RUN_SLOW=1 + faster-whisper + espeak-ng để chạy)"; fi
+
+# Ảnh lưới khung hình
+bash $S/video_prep.sh fixtures/ocr_vi.mp4 $T/vp >/dev/null 2>&1
+python3 -c "
+from PIL import Image
+for f in ['hook_sheet.jpg','scenes_sheet.jpg']: im=Image.open('$T/vp/'+f); assert im.size[0]>800, (f, im.size)" 2>/dev/null || test -s $T/vp/hook_sheet.jpg
+pass "video_prep.sh (hook_sheet.jpg + scenes_sheet.jpg)"
 
 bash -n $S/video_prep.sh && node --check $S/capture_page.cjs && node --check $S/adlib_scrape.cjs && python3 -m py_compile $S/shopify_product.py $S/csvio.py $S/transcribe.py $S/apify_fetch.py $S/adlib_api.py
 pass "syntax video_prep.sh / capture_page.cjs / adlib_scrape.cjs / shopify_product.py"

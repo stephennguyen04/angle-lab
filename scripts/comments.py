@@ -6,8 +6,9 @@ Bước 1  prep   : gom mọi file bình luận (yt-dlp .info.json, CSV, JSON, J
     python3 comments.py prep --out-dir research/x/comments \
         --input tiktok:tiktok_post1.info.json --input amazon:amazon_reviews.csv --input fb:fb_comments.txt
 
-Bước 2  (AI)   : đọc từng batch, ghi labels.jsonl, mỗi dòng:
-    {"id":"c00012","type":"complaint","topics":["shipping"],"severity":2,"buyer":true,"note":"giao 3 tuần chưa tới"}
+Bước 2  (AI)   : đọc từng batch (TSV gọn, đã gộp bản gần trùng), ghi labels.txt, mỗi dòng 1 nhãn mã ngắn:
+    c00012 C shi,scam 3 b giao 3 tuần chưa tới        (id LOẠI chủ_đề sev mua [ghi chú]; JSON cũ vẫn đọc được)
+    LOẠI P khen · C chê · Q hỏi · I muốn mua · S nghi ngờ · T tag bạn · O khác; mua b/n/-
     type    : praise | complaint | question | purchase_intent | skeptic | tag_friend | other
     topics  : efficacy, quality, price, shipping, sizing, usage, safety, scam_trust, support_refund,
               design, smell_taste, durability, competitor, packaging, other
@@ -75,6 +76,48 @@ TOPIC_HINTS = {
 
 SEVERITY_WEIGHT = {0: 0.5, 1: 1, 2: 3, 3: 8}
 
+# Mã ngắn để AI đọc batch / viết nhãn tốn ít token (≈5× ít hơn JSON)
+TYPE_CODE = {"P": "praise", "C": "complaint", "Q": "question", "I": "purchase_intent", "S": "skeptic", "T": "tag_friend", "O": "other"}
+TYPE2CODE = {v: k for k, v in TYPE_CODE.items()}
+TOPIC_CODE = {"eff": "efficacy", "qua": "quality", "pri": "price", "shi": "shipping", "siz": "sizing", "use": "usage", "saf": "safety",
+              "scam": "scam_trust", "sup": "support_refund", "des": "design", "sme": "smell_taste", "dur": "durability",
+              "comp": "competitor", "pack": "packaging", "oth": "other"}
+TOPIC2CODE = {v: k for k, v in TOPIC_CODE.items()}
+BATCH_HEADER = ("# id\tlike\t×trùng\tgợi_ý\tnội_dung  |  NHÃN (1 dòng/id): id LOẠI chủ_đề sev mua [ghi chú]\n"
+                "# LOẠI P=khen C=chê Q=hỏi I=muốn mua S=nghi ngờ T=tag bạn O=khác · chủ đề: " + ",".join(TOPIC_CODE) +
+                " · sev 0-3 (chê/nghi ngờ) · mua b=đã mua n=chưa -=không rõ\n"
+                "# vd: c00012 C shi,scam 3 b 3 tuần chưa nhận hàng\n")
+
+
+def group_key(plat: str, t: str) -> str:
+    """Khoá gộp bình luận gần trùng: bỏ dấu, @tag, link, số, emoji, dấu câu."""
+    k = unicodedata.normalize("NFKD", t.lower().replace("đ", "d"))
+    k = "".join(ch for ch in k if not unicodedata.combining(ch))
+    k = re.sub(r"@\S+|https?://\S+|\d+", " ", k)
+    k = re.sub(r"[^a-z]+", " ", k).strip()
+    return f"{plat}|{k}"
+
+
+def parse_label_line(line: str) -> dict | None:
+    """Đọc nhãn dạng gọn `c00012 C shi,scam 3 b ghi chú` hoặc JSON."""
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return None
+    if line.startswith("{"):
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError:
+            return None
+    parts = line.split(None, 5)
+    if len(parts) < 2 or parts[1].upper() not in TYPE_CODE:
+        return None
+    topics = [TOPIC_CODE.get(x.strip(), x.strip()) for x in (parts[2] if len(parts) > 2 else "oth").split(",") if x.strip() and x.strip() != "-"]
+    sev = parts[3] if len(parts) > 3 else "0"
+    buyer = parts[4] if len(parts) > 4 else "-"
+    return {"id": parts[0], "type": TYPE_CODE[parts[1].upper()], "topics": topics or ["other"],
+            "severity": int(sev) if sev.isdigit() else 0, "buyer": {"b": True, "n": False}.get(buyer.lower()),
+            "note": parts[5] if len(parts) > 5 else None}
+
 
 def nk(k: str) -> str:
     return norm_key(k)
@@ -128,11 +171,12 @@ def read_any(path: Path) -> list[dict]:
     return [{"text": b} for b in blocks]
 
 
-def hint(text: str) -> dict:
+def hint(text: str) -> str:
+    """Gợi ý dạng mã ngắn, vd 'Q,P|pri,shi'. Chỉ là gợi ý; AI quyết định."""
     low = text.lower()
-    types = [t for t, p in HINTS.items() if re.search(p, low)]
-    topics = [t for t, p in TOPIC_HINTS.items() if re.search(p, low)]
-    return {"types": types, "topics": topics}
+    types = [TYPE2CODE[t] for t, p in HINTS.items() if re.search(p, low)]
+    topics = [TOPIC2CODE[t] for t, p in TOPIC_HINTS.items() if re.search(p, low)]
+    return (",".join(types) or "-") + ("|" + ",".join(topics) if topics else "")
 
 
 def cmd_prep(a):
@@ -178,24 +222,63 @@ def cmd_prep(a):
                 "hint": hint(t),
             })
     rows.sort(key=lambda x: (x["platform"], -x["likes"]))
+    # Gộp bình luận gần trùng (khác emoji/@tag/dấu/số): AI chỉ gắn nhãn 1 lần cho cả nhóm, report tự áp cho các bản còn lại
+    reps: dict[str, dict] = {}
+    for r in rows:
+        g = group_key(r["platform"], r["text"])
+        if len(g.split("|", 1)[1]) >= 3 and g in reps:
+            r["rep"] = reps[g]["id"]
+            reps[g]["group_n"] = reps[g].get("group_n", 1) + 1
+        else:
+            reps[g] = r
+    to_label = [r for r in rows if "rep" not in r]
     with open(out / "comments.jsonl", "w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    for old in (out / "batches").glob("batch_*.jsonl"):
+    for old in list((out / "batches").glob("batch_*.jsonl")) + list((out / "batches").glob("batch_*.tsv")):
         old.unlink()
     n_batches = 0
-    for i in range(0, len(rows), a.batch_size):
+    for i in range(0, len(to_label), a.batch_size):
         n_batches += 1
-        with open(out / "batches" / f"batch_{n_batches:03d}.jsonl", "w", encoding="utf-8") as f:
-            for r in rows[i:i + a.batch_size]:
-                slim = {k: r[k] for k in ("id", "platform", "text", "likes", "rating", "hint")}
-                f.write(json.dumps(slim, ensure_ascii=False) + "\n")
+        if a.batch_format == "jsonl":
+            with open(out / "batches" / f"batch_{n_batches:03d}.jsonl", "w", encoding="utf-8") as f:
+                for r in to_label[i:i + a.batch_size]:
+                    slim = {k: r.get(k) for k in ("id", "platform", "text", "likes", "rating", "hint", "group_n")}
+                    f.write(json.dumps(slim, ensure_ascii=False) + "\n")
+        else:
+            with open(out / "batches" / f"batch_{n_batches:03d}.tsv", "w", encoding="utf-8") as f:
+                f.write(BATCH_HEADER)
+                for r in to_label[i:i + a.batch_size]:
+                    txt = r["text"].replace("\t", " ")
+                    star = f"★{r['rating']} " if r.get("rating") not in (None, "") else ""
+                    f.write(f"{r['id']}\t{r['likes']}\t{r.get('group_n', 1)}\t{r['hint']}\t{star}{txt}\n")
     per_plat = Counter(r["platform"] for r in rows)
-    summary = {"total": len(rows), "per_platform": dict(per_plat), "dropped": dict(stats), "batches": n_batches,
-               "batch_size": a.batch_size}
+    summary = {"total": len(rows), "to_label": len(to_label), "grouped_near_duplicates": len(rows) - len(to_label),
+               "per_platform": dict(per_plat), "dropped": dict(stats), "batches": n_batches, "batch_size": a.batch_size,
+               "batch_format": a.batch_format}
     (out / "prep_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
-    print(f"\n→ Gắn nhãn các file trong {out/'batches'}/ rồi ghi vào {out/'labels.jsonl'} (1 dòng JSON / bình luận).")
+    print(f"{len(rows)} bình luận · cần gắn nhãn {len(to_label)} (gộp {len(rows) - len(to_label)} bản gần trùng) · "
+          f"{n_batches} batch · nền tảng: " + ", ".join(f"{k} {v}" for k, v in per_plat.most_common()) +
+          (f" · bỏ: " + ", ".join(f"{k} {v}" for k, v in stats.items()) if stats else ""))
+    print(f"→ Gắn nhãn {out/'batches'}/batch_*.{'tsv' if a.batch_format == 'tsv' else 'jsonl'} → ghi {out/'labels.txt'} "
+          f"(hoặc labels/batch_XXX.txt), mỗi dòng: id LOẠI chủ_đề sev mua [ghi chú]")
+
+
+def load_labels(out: Path) -> dict[str, dict]:
+    files = [out / "labels.txt", out / "labels.jsonl"]
+    if (out / "labels").exists():
+        files += sorted((out / "labels").glob("*.txt")) + sorted((out / "labels").glob("*.jsonl"))
+    labels = {}
+    for f in files:
+        if not f.exists():
+            continue
+        for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            lab = parse_label_line(line)
+            if lab and lab.get("id"):
+                labels[lab["id"]] = lab
+            elif line.strip() and not line.lstrip().startswith("#"):
+                print(f"[warn] {f.name}:{i} không đọc được nhãn, bỏ qua", file=sys.stderr)
+    return labels
 
 
 def load_jsonl(p: Path) -> list[dict]:
@@ -216,16 +299,17 @@ def load_jsonl(p: Path) -> list[dict]:
 def cmd_report(a):
     out = Path(a.out_dir)
     comments = {c["id"]: c for c in load_jsonl(out / "comments.jsonl")}
+    raw_labels = load_labels(out)
     labels = {}
-    for lf in [out / "labels.jsonl", *sorted((out / "labels").glob("*.jsonl"))] if (out / "labels").exists() else [out / "labels.jsonl"]:
-        for l in load_jsonl(lf):
-            if l.get("id") in comments:
-                labels[l["id"]] = l
+    for cid, c in comments.items():   # bản gần trùng dùng nhãn của bản đại diện
+        lab = raw_labels.get(cid) or raw_labels.get(c.get("rep"))
+        if lab:
+            labels[cid] = lab
     if not (out / "comments.jsonl").exists():
         sys.exit("Chưa có comments.jsonl. Chạy prep trước.")
     if not comments:
         sys.exit("comments.jsonl có 0 bình luận (file nguồn rỗng hoặc toàn emoji/trùng). Kiểm tra lại file đầu vào của prep.")
-    unlabeled = [cid for cid in comments if cid not in labels]
+    unlabeled = [cid for cid, c in comments.items() if cid not in labels and "rep" not in c]
 
     rows = []
     for cid, lab in labels.items():
@@ -319,7 +403,10 @@ def cmd_report(a):
            "buyer_negative_share": round(buyer_neg / len(buyer_rows), 3) if buyer_rows else None}
     (out / "report.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
     (out / "report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
-    print("\n".join(L))
+    # In tóm tắt; bản đầy đủ nằm trong report.md (đỡ tốn token khi AI đọc output)
+    cut = next((i for i, l in enumerate(L) if l.startswith("## Theo nền tảng")), len(L))
+    print("\n".join(L[:cut]).rstrip())
+    print(f"→ Báo cáo đầy đủ: {out/'report.md'} (top chê/hỏi/khen + quote) · số liệu: {out/'report.json'}")
 
 
 def main():
@@ -329,8 +416,9 @@ def main():
     p.add_argument("--input", "-i", action="append", required=True,
                    help="platform:path (vd tiktok:post1.info.json). Lặp lại nhiều lần.")
     p.add_argument("--out-dir", required=True)
-    p.add_argument("--batch-size", type=int, default=150)
-    p.add_argument("--max-chars", type=int, default=600)
+    p.add_argument("--batch-size", type=int, default=200)
+    p.add_argument("--max-chars", type=int, default=400)
+    p.add_argument("--batch-format", choices=["tsv", "jsonl"], default="tsv", help="tsv gọn (mặc định, ít token) | jsonl")
     p.set_defaults(fn=cmd_prep)
     r = sub.add_parser("report")
     r.add_argument("--out-dir", required=True)

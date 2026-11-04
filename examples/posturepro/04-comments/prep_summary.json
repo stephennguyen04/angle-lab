@@ -1,0 +1,17 @@
+{
+  "total": 13,
+  "to_label": 13,
+  "grouped_near_duplicates": 0,
+  "per_platform": {
+    "amazon": 3,
+    "instagram": 3,
+    "tiktok": 7
+  },
+  "dropped": {
+    "emoji_or_too_short": 1,
+    "duplicate": 1
+  },
+  "batches": 1,
+  "batch_size": 200,
+  "batch_format": "tsv"
+}

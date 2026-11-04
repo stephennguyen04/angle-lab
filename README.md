@@ -35,6 +35,18 @@ Plugin cho **Claude Code**: với mỗi sản phẩm, AI phân tích đối th�
 
 Agent chạy song song: `ad-scale-analyst`, `funnel-analyst`, `video-angle-analyst`, `comment-miner`.
 
+## Xem output mẫu
+
+Thư mục [`examples/`](examples/) chứa output thật của mọi bước khi chạy trên sản phẩm mẫu (dữ liệu giả lập): báo cáo cuối, bảng điểm Meta + IG, ảnh lưới hook, OCR, batch/nhãn bình luận, kết quả test, ma trận nhân bản.
+
+## Tiết kiệm token
+
+- Mô tả skill ngắn (nạp ở mọi phiên); chi tiết tra cứu nằm trong `skills/*/reference.md`, chỉ mở khi cần.
+- Bình luận: gộp bản gần trùng, batch dạng TSV, nhãn viết bằng mã ngắn (`c00012 C shi,scam 3 b`), nên AI đọc/viết ít hơn khoảng 85%.
+- Video: `hook_sheet.jpg` + `scenes_sheet.jpg` (2 ảnh lưới có ghi thời gian) thay cho khoảng 30 khung lẻ; chữ trên màn hình và lời thoại có sẵn ở dạng text.
+- Trang web: `stepN_summary.md` + ảnh màn hình đầu + ảnh khu bundle, thay cho text đầy đủ và ảnh toàn trang.
+- Script có `--out-md` chỉ in tóm tắt; bản đầy đủ nằm trong file.
+
 ## Cài đặt
 
 **Từ GitHub** (repo này đồng thời là 1 marketplace):

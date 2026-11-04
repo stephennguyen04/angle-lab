@@ -239,7 +239,7 @@ def main():
             lines.insert(0, f"HOOK 0–3s: {res['hook_text'] or '(không có chữ)'}")
     (out / "ocr.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     (out / "ocr.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("\n".join(lines[:40]))
+    print("\n".join(lines[:12]) + (f"\n… (+{len(lines) - 12} dòng)" if len(lines) > 12 else ""))
     print(f"\n→ {out}/ocr.json · engine={engine}")
 
 

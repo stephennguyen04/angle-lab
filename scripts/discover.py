@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ad_cadence import load_rows, parse_bool, parse_date, parse_int, pick  # noqa: E402
+from csvio import brief  # noqa: E402
 
 MARKETPLACES = {"amazon.com", "amazon.co.uk", "amazon.de", "temu.com", "aliexpress.com", "shein.com", "walmart.com", "ebay.com",
                 "etsy.com", "shopee.vn", "lazada.vn", "tiktok.com", "tiki.vn", "target.com"}
@@ -112,7 +113,7 @@ def main():
         Path(a.out_md).write_text(md, encoding="utf-8")
     if a.out_json:
         Path(a.out_json).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(md)
+    print(brief(md, a.out_md, 8))
 
 
 if __name__ == "__main__":

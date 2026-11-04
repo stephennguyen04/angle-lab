@@ -6,7 +6,9 @@
 #
 # Output:
 #   out_dir/video.mp4
-#   out_dir/hook/hook_XX.jpg        : 4 fps trong 3 giây đầu (12 khung) để soi hook
+#   out_dir/hook_sheet.jpg          : ẢNH LƯỚI 12 khung 0–3s có ghi thời gian → đọc ảnh này trước (1 ảnh thay 12)
+#   out_dir/scenes_sheet.jpg        : ẢNH LƯỚI keyframe các cảnh có ghi thời gian (1 ảnh thay ~20)
+#   out_dir/hook/hook_XX.jpg        : từng khung lẻ, chỉ mở khi cần soi chi tiết
 #   out_dir/scenes/scene_XXX.jpg    : keyframe khi đổi cảnh (tối đa 24), kèm scenes.txt (timestamp)
 #   out_dir/audio.wav
 #   out_dir/transcript.txt|.srt|.json : lời thoại (transcribe.py, nếu có faster-whisper/whisper). ASR_LANG=vi ASR_MODEL=medium
@@ -45,6 +47,17 @@ NSCENES=$(wc -l < "$OUT/scenes/scenes.txt" | tr -d ' ')
 # Ít cảnh quá (video 1 shot) → lấy mỗi 2s 1 khung
 if [ "${NSCENES:-0}" -lt 4 ]; then
   ffmpeg -loglevel error -y -i "$VID" -vf "fps=1/2,scale=540:-2" -frames:v 24 "$OUT/scenes/every2s_%03d.jpg"
+fi
+
+# Ảnh lưới (contact sheet) có ghi thời gian: AI đọc 2 ảnh thay vì ~30 khung lẻ → tiết kiệm token
+FONT=""; for f in /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf /Library/Fonts/Arial\ Bold.ttf /System/Library/Fonts/Supplemental/Arial\ Bold.ttf C:/Windows/Fonts/arialbd.ttf; do [ -f "$f" ] && FONT="$f" && break; done
+LBL=""; [ -n "$FONT" ] && LBL=",drawtext=fontfile='$FONT':text='%{pts\\:hms}':x=8:y=8:fontsize=26:fontcolor=white:box=1:boxcolor=black@0.65"
+ffmpeg -loglevel error -y -t 3 -i "$VID" -vf "fps=4,scale=270:-2${LBL},tile=4x3:padding=4:color=white" -frames:v 1 "$OUT/hook_sheet.jpg" 2>/dev/null \
+  || ffmpeg -loglevel error -y -t 3 -i "$VID" -vf "fps=4,scale=270:-2,tile=4x3:padding=4" -frames:v 1 "$OUT/hook_sheet.jpg" || true
+ffmpeg -loglevel error -y -i "$VID" -vf "select='gt(scene,0.30)+eq(n,0)',scale=216:-2${LBL},tile=5x4:padding=4:color=white" -vsync vfr -frames:v 1 "$OUT/scenes_sheet.jpg" 2>/dev/null \
+  || ffmpeg -loglevel error -y -i "$VID" -vf "fps=1/2,scale=216:-2,tile=5x4:padding=4" -frames:v 1 "$OUT/scenes_sheet.jpg" || true
+if [ "${NSCENES:-0}" -lt 4 ]; then  # video ít cắt cảnh: lưới theo mỗi 2 giây
+  ffmpeg -loglevel error -y -i "$VID" -vf "fps=1/2,scale=216:-2${LBL},tile=5x4:padding=4:color=white" -frames:v 1 "$OUT/scenes_sheet.jpg" 2>/dev/null || true
 fi
 
 ffmpeg -loglevel error -y -i "$VID" -vn -ac 1 -ar 16000 "$OUT/audio.wav" || true

@@ -1,0 +1,82 @@
+{
+  "labeled": 13,
+  "total": 13,
+  "unlabeled_ids": [],
+  "type_share": {
+    "praise": 0.231,
+    "complaint": 0.385,
+    "question": 0.231,
+    "purchase_intent": 0.0,
+    "skeptic": 0.077,
+    "tag_friend": 0.077,
+    "other": 0.0
+  },
+  "per_platform": {
+    "amazon": {
+      "complaint": 2,
+      "praise": 1
+    },
+    "instagram": {
+      "question": 1,
+      "praise": 1,
+      "complaint": 1
+    },
+    "tiktok": {
+      "skeptic": 1,
+      "complaint": 2,
+      "praise": 1,
+      "question": 2,
+      "tag_friend": 1
+    }
+  },
+  "topic_type": {
+    "sizing": {
+      "complaint": 1
+    },
+    "safety": {
+      "complaint": 1
+    },
+    "quality": {
+      "praise": 1,
+      "complaint": 1
+    },
+    "price": {
+      "question": 2,
+      "skeptic": 1
+    },
+    "efficacy": {
+      "praise": 2,
+      "question": 1
+    },
+    "shipping": {
+      "complaint": 2
+    },
+    "scam_trust": {
+      "complaint": 2,
+      "skeptic": 1
+    },
+    "competitor": {
+      "skeptic": 1
+    },
+    "durability": {
+      "complaint": 1
+    },
+    "other": {
+      "tag_friend": 1
+    }
+  },
+  "topic_risk_weight": {
+    "sizing": 6.2,
+    "safety": 45.27,
+    "shipping": 114.82,
+    "scam_trust": 121.12,
+    "price": 6.3,
+    "competitor": 6.3,
+    "durability": 23.0,
+    "quality": 23.0
+  },
+  "risk_index": 3.308,
+  "risk_level": "🔴 ĐỎ: rủi ro sản phẩm cao, phải xử lý điểm chê trước khi chạy",
+  "severity3_count": 3,
+  "buyer_negative_share": 0.625
+}

@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ad_cadence import load_rows, parse_bool, parse_date, parse_int, pick  # noqa: E402
-from csvio import parse_count, read_csv_rows  # noqa: E402
+from csvio import brief, parse_count, read_csv_rows  # noqa: E402
 
 WEIGHTS = {
     "meta-ig": {
@@ -156,11 +156,14 @@ def main():
     cstat = defaultdict(lambda: {"n": 0, "buy": 0, "neg": 0})
     if a.comments_dir:
         cd = Path(a.comments_dir)
+        from comments import load_labels  # đọc cả nhãn mã ngắn (labels.txt) lẫn JSON cũ
         comments = {c["id"]: c for c in load_jsonl(cd / "comments.jsonl")}
-        labels = load_jsonl(cd / "labels.jsonl")
-        if (cd / "labels").exists():
-            for lf in sorted((cd / "labels").glob("*.jsonl")):
-                labels += load_jsonl(lf)
+        raw = load_labels(cd)
+        labels = []
+        for cid, c in comments.items():       # bản gần trùng dùng nhãn của bản đại diện
+            lab = raw.get(cid) or raw.get(c.get("rep"))
+            if lab:
+                labels.append({**lab, "id": cid})
         for l in labels:
             c = comments.get(l.get("id"))
             ang = url2angle.get(norm_url(c.get("source_url"))) if c else None
@@ -362,7 +365,11 @@ def main():
         Path(a.out_json).write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
     if a.out_md:
         Path(a.out_md).write_text(md, encoding="utf-8")
-    print(md)
+        tops = [f"Top ad: " + " · ".join(f"{x['id']} ({x['days']}d, {x['dups']} bản)" for x in top_ads[:3]),
+                f"Top bài IG: " + " · ".join(f"{p['url']} ({int(p['views']):,} view)" for p in top_posts[:3])]
+        print(brief(md, a.out_md, 6 + min(len(out), 8)) + "\n" + "\n".join(tops))
+    else:
+        print(md)
 
 
 if __name__ == "__main__":
