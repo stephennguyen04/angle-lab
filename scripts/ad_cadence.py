@@ -41,6 +41,8 @@ FIELD_ALIASES = {
     "body": ["body", "text", "ad_creative_body", "primary_text", "caption", "noi_dung"],
     "page_name": ["page_name", "page", "advertiser"],
     "platforms": ["platforms", "publisher_platforms", "placements", "nen_tang"],
+    "eu_reach": ["eu_reach", "eu_total_reach", "reach", "luot_tiep_can", "tiep_can_eu"],
+    "partnership": ["partnership", "paid_partnership", "branded_content", "is_partnership", "creator"],
 }
 
 EN_MONTHS = {m: i for i, m in enumerate(
